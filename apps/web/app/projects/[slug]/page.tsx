@@ -9,10 +9,10 @@ import { AmenityIcon } from "../../../components/amenity-icon";
 import { UnitTypeCards } from "../../../components/unit-type-cards";
 import { ProjectCard } from "../../../components/project-card";
 import { ExpressInterest } from "../../../features/leads/express-interest";
-import { ShareButton } from "../../../components/share-button";
 import { ReadMore } from "../../../components/read-more";
 import { FloorPlans } from "../../../components/floor-plans";
-import { ProjectMap } from "../../../components/project-map";
+// Google Maps embed temporarily disabled
+// import { ProjectMap } from "../../../components/project-map";
 import { ContactList } from "../../../components/contact-list";
 import { TrustLegal } from "../../../components/trust-legal";
 import { PriceAndEmi } from "../../../components/price-and-emi";
@@ -196,6 +196,26 @@ export default async function ProjectPage({ params }: PageProps) {
   const possession = formatPossessionDate(project.possessionDate);
   const verified = project.builder.verificationStatus === "VERIFIED";
 
+  // Derive a BHK range (e.g. "2–3 BHK") from unit labels for the header line.
+  const bhkMatches = unitTypes
+    .map((u) => /(\d+)\s*BHK/i.exec(u.label)?.[1])
+    .filter((v): v is string => Boolean(v))
+    .map(Number);
+  const distinctBhk = [...new Set(bhkMatches)].sort((a, b) => a - b);
+  const configuration =
+    distinctBhk.length === 1
+      ? `${distinctBhk[0]} BHK`
+      : distinctBhk.length > 1
+        ? `${distinctBhk[0]}–${distinctBhk[distinctBhk.length - 1]!} BHK`
+        : null;
+  const headerMetaLine = [
+    propertyTypeLabels.join(" · ") || null,
+    configuration,
+    possession ? `Possession ${possession}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const primaryImageUrl =
     project.media.find((m) => m.isPrimary)?.url ??
     project.media.find((m) => m.type === "IMAGE")?.url ??
@@ -208,22 +228,22 @@ export default async function ProjectPage({ params }: PageProps) {
     {
       label: "Type",
       value: propertyTypeLabels.join(" · ") || "—",
-      icon: <House size={14} aria-hidden />,
+      icon: <House size={16} aria-hidden />,
     },
     {
       label: "Status",
       value: statusLabel || "—",
-      icon: <Construction size={14} aria-hidden />,
+      icon: <Construction size={16} aria-hidden />,
     },
     possession && {
       label: "Possession",
       value: possession,
-      icon: <CalendarDays size={14} aria-hidden />,
+      icon: <CalendarDays size={16} aria-hidden />,
     },
     startingPrice !== null && {
       label: "Starts at",
       value: formatPrice(startingPrice),
-      icon: <IndianRupee size={14} aria-hidden />,
+      icon: <IndianRupee size={16} aria-hidden />,
     },
   ].filter((f): f is { label: string; value: string; icon: ReactElement } =>
     Boolean(f),
@@ -368,9 +388,15 @@ export default async function ProjectPage({ params }: PageProps) {
 
   return (
     <div className="pb-24 md:pb-0">
-      {/* A1 — Media gallery (full-bleed mobile, contained desktop) */}
+      {/* Hero gallery (full-bleed mobile, contained desktop) */}
       <div className="md:mx-auto md:max-w-6xl md:px-4 md:pt-6">
-        <ProjectMedia media={project.media} alt={project.title} />
+        <ProjectMedia
+          media={project.media}
+          alt={project.title}
+          projectId={project.id}
+          shareTitle={project.title}
+          shareUrl={shareUrl}
+        />
       </div>
 
       {/* A13 — JSON-LD structured data */}
@@ -393,78 +419,93 @@ export default async function ProjectPage({ params }: PageProps) {
         />
       )}
 
-      <div className="mx-auto max-w-6xl px-4">
-        <div className="flex flex-col gap-8 py-6 lg:flex-row lg:items-start lg:gap-10">
+      <div className="relative z-10 mx-auto max-w-6xl px-4">
+        {/* Floating property header — overlaps the gallery bottom on desktop */}
+        <section className="mt-4 rounded-card-xl border border-slate-200/80 bg-surface p-5 shadow-card md:-mt-12 md:p-6">
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-4 flex items-center gap-1.5 text-xs font-medium text-slate-400"
+          >
+            <Link href="/" className="transition-colors hover:text-accent">
+              Home
+            </Link>
+            <ChevronRight size={12} aria-hidden />
+            <Link
+              href="/search"
+              className="transition-colors hover:text-accent"
+            >
+              Search
+            </Link>
+            <ChevronRight size={12} aria-hidden />
+            <span className="truncate text-slate-600">{project.title}</span>
+          </nav>
+
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="font-display text-[26px] font-bold leading-tight text-slate-900 md:text-[32px]">
+                {project.title}
+              </h1>
+              <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500 md:text-[15px]">
+                <MapPin size={15} className="shrink-0 text-accent" aria-hidden />
+                {project.locality.name}, {project.city.name}
+              </p>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                {verified && <VerifiedBadge showLabel size={14} />}
+                {statusLabel && (
+                  <span className="rounded-pill bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent-dark">
+                    {statusLabel}
+                  </span>
+                )}
+              </div>
+              {headerMetaLine && (
+                <p className="mt-2.5 text-sm font-medium text-slate-600">
+                  {headerMetaLine}
+                </p>
+              )}
+            </div>
+            <div className="relative flex shrink-0 items-center gap-2">
+              <CompareDropdown currentSlug={project.slug} />
+              <CompareToggle slug={project.slug} />
+            </div>
+          </div>
+        </section>
+
+        {/* Quick facts tiles */}
+        <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {quickFacts.map((f) => (
+            <div
+              key={f.label}
+              className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-card-hover"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft/70 text-accent-dark">
+                {f.icon}
+              </span>
+              <p className="mt-3 text-[11px] font-bold tracking-[0.1em] text-slate-400 uppercase">
+                {f.label}
+              </p>
+              <p
+                className="mt-1 truncate text-sm font-semibold text-slate-900 md:text-[15px]"
+                title={f.value}
+              >
+                {f.value}
+              </p>
+            </div>
+          ))}
+        </section>
+
+        <div className="mt-8 flex flex-col gap-8 pb-6 lg:flex-row lg:items-start lg:gap-8">
           {/* Main content */}
           <div className="min-w-0 flex-1">
-            {/* Breadcrumb */}
-            <nav
-              aria-label="Breadcrumb"
-              className="mb-3 flex items-center gap-1.5 text-xs font-medium text-slate-400"
-            >
-              <Link href="/" className="transition-colors hover:text-accent">
-                Home
-              </Link>
-              <ChevronRight size={12} aria-hidden />
-              <Link
-                href="/search"
-                className="transition-colors hover:text-accent"
-              >
-                Search
-              </Link>
-              <ChevronRight size={12} aria-hidden />
-              <span className="truncate text-slate-600">{project.title}</span>
-            </nav>
-
-            {/* A2 — Title & trust bar */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="font-display text-2xl font-bold text-slate-900 md:text-3xl">
-                  {project.title}
-                </h1>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  {verified && <VerifiedBadge showLabel size={14} />}
-                  {statusLabel && (
-                    <span className="rounded-pill bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent-dark">
-                      {statusLabel}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
-                  <MapPin size={14} className="shrink-0" aria-hidden />
-                  {project.locality.name}, {project.city.name}
-                </p>
-              </div>
-              <div className="relative flex shrink-0 items-center gap-2">
-                <CompareDropdown currentSlug={project.slug} />
-                <CompareToggle slug={project.slug} />
-                <ShareButton title={project.title} url={shareUrl} />
-              </div>
-            </div>
-
-            {/* A3 — Quick facts chip row */}
-            <div className="no-scrollbar -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-              {quickFacts.map((f) => (
-                <span
-                  key={f.label}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-slate-200 bg-surface px-3.5 py-2 text-sm font-medium text-slate-700 shadow-card"
-                >
-                  <span className="text-accent">{f.icon}</span>
-                  {f.value}
-                </span>
-              ))}
-            </div>
-
             {/* B1 — Trust & legal strip */}
             <TrustLegal project={project} />
 
             {/* A5 — Description */}
             {project.description && (
               <section className="mt-8">
-                <h2 className="font-display text-lg font-semibold text-slate-900 md:text-xl">
+                <h2 className="font-display text-xl font-semibold text-slate-900 md:text-[22px]">
                   About this project
                 </h2>
-                <ReadMore text={project.description} className="mt-2" />
+                <ReadMore text={project.description} className="mt-3" />
               </section>
             )}
 
@@ -472,7 +513,7 @@ export default async function ProjectPage({ params }: PageProps) {
             {unitTypes.length > 0 && (
               <section className="mt-8">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-display text-lg font-semibold text-slate-900 md:text-xl">
+                  <h2 className="font-display text-xl font-semibold text-slate-900 md:text-[22px]">
                     Unit types & pricing
                   </h2>
                   <span className="rounded-pill bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
@@ -508,7 +549,7 @@ export default async function ProjectPage({ params }: PageProps) {
             {/* A7 — Amenities icon grid */}
             {project.amenities.length > 0 && (
               <section className="mt-8">
-                <h2 className="font-display text-lg font-semibold text-slate-900 md:text-xl">
+                <h2 className="font-display text-xl font-semibold text-slate-900 md:text-[22px]">
                   Amenities
                 </h2>
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -537,7 +578,7 @@ export default async function ProjectPage({ params }: PageProps) {
 
             {/* A9 — Location */}
             <section className="mt-8">
-              <h2 className="font-display text-lg font-semibold text-slate-900 md:text-xl">
+              <h2 className="font-display text-xl font-semibold text-slate-900 md:text-[22px]">
                 Location
               </h2>
               <div className="mt-3 rounded-card border border-slate-200 bg-surface p-5 shadow-card">
@@ -567,6 +608,7 @@ export default async function ProjectPage({ params }: PageProps) {
                   </div>
                 </div>
               </div>
+              {/* Google Maps embed — temporarily disabled
               {project.latitude && project.longitude && (
                 <ProjectMap
                   latitude={project.latitude}
@@ -574,6 +616,7 @@ export default async function ProjectPage({ params }: PageProps) {
                   title={project.title}
                 />
               )}
+              */}
 
               {/* B5 — Nearby landmarks grouped under the map */}
               <NearbyLandmarks items={project.landmarks ?? []} />
@@ -602,6 +645,11 @@ export default async function ProjectPage({ params }: PageProps) {
               label: ut.label,
               price: ut.price,
             }))}
+            propertyTypeLabel={
+              propertyTypeLabels.join(" · ") || null
+            }
+            configuration={configuration}
+            possessionLabel={possession || null}
           />
         </div>
 

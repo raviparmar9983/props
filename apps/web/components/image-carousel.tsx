@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { Building2 } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight } from "lucide-react";
 import { ResilientImage } from "./resilient-image";
 
 interface ImageCarouselProps {
@@ -12,6 +12,9 @@ interface ImageCarouselProps {
   overlay?: (index: number, count: number) => ReactNode;
   className?: string;
   showDots?: boolean;
+  dotsPosition?: "bottom" | "top";
+  showArrows?: boolean;
+  slideClassName?: string;
   rounded?: boolean;
   initialIndex?: number;
 }
@@ -24,6 +27,9 @@ export function ImageCarousel({
   overlay,
   className = "",
   showDots = true,
+  dotsPosition = "bottom",
+  showArrows = false,
+  slideClassName = "",
   rounded = true,
   initialIndex = 0,
 }: ImageCarouselProps) {
@@ -43,7 +49,7 @@ export function ImageCarousel({
       <div
         className={`flex items-center justify-center ${aspectClassName} ${
           rounded ? "rounded-image" : ""
-        } bg-gradient-to-br from-ink-blue to-slate-800`}
+        } bg-gradient-to-br from-ink-blue to-slate-800 ${className}`}
       >
         <Building2
           size={48}
@@ -126,15 +132,50 @@ export function ImageCarousel({
             alt={`${alt} photo ${i + 1}`}
             draggable={false}
             onClick={onOpen ? handleClick : undefined}
-            wrapperClassName="h-full w-full shrink-0 cursor-pointer select-none"
+            wrapperClassName={`h-full w-full shrink-0 cursor-pointer select-none ${slideClassName}`}
           />
         ))}
       </div>
 
       {overlay && overlay(index, count)}
 
+      {showArrows && count > 1 && (
+        <>
+          <button
+            type="button"
+            aria-label="Previous photo"
+            disabled={index === 0 || dragging}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIndex((i) => Math.max(i - 1, 0));
+            }}
+            className="absolute left-2.5 top-[calc(50%_-_16px)] z-10 hidden h-8 w-8 items-center justify-center rounded-full bg-white/85 text-slate-800 opacity-0 shadow-md backdrop-blur-sm transition-all duration-[var(--duration-fast)] hover:scale-105 hover:bg-white focus-visible:opacity-100 disabled:pointer-events-none disabled:opacity-0 group-hover:opacity-100 md:flex"
+          >
+            <ChevronLeft size={16} strokeWidth={2.4} aria-hidden />
+          </button>
+          <button
+            type="button"
+            aria-label="Next photo"
+            disabled={index === last || dragging}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIndex((i) => Math.min(i + 1, last));
+            }}
+            className="absolute right-2.5 top-[calc(50%_-_16px)] z-10 hidden h-8 w-8 items-center justify-center rounded-full bg-white/85 text-slate-800 opacity-0 shadow-md backdrop-blur-sm transition-all duration-[var(--duration-fast)] hover:scale-105 hover:bg-white focus-visible:opacity-100 disabled:pointer-events-none disabled:opacity-0 group-hover:opacity-100 md:flex"
+          >
+            <ChevronRight size={16} strokeWidth={2.4} aria-hidden />
+          </button>
+        </>
+      )}
+
       {showDots && count > 1 && (
-        <div className="absolute bottom-2.5 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill bg-black/30 px-2 py-1 backdrop-blur-sm">
+        <div
+          className={`absolute left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill bg-black/30 px-2 py-1 backdrop-blur-sm ${
+            dotsPosition === "top" ? "top-3" : "bottom-2.5"
+          }`}
+        >
           {images.map((_, i) => (
             <button
               key={i}

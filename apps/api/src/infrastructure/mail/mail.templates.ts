@@ -79,29 +79,25 @@ function baseLayout(title: string, contentHtml: string): string {
 
           <!-- ===== HEADER ===== -->
           <tr>
-            <td style="padding:0 0 24px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${BRAND.surface};border-radius:20px 20px 0 0;">
+            <td style="padding:0;">
+              <!-- Brand band -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${BRAND.dark};border-radius:20px 20px 0 0;">
                 <tr>
-                  <td style="padding:28px 32px 24px;border-bottom:1px solid ${BRAND.border};">
-                    <!-- Logo -->
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                      <tr>
-                        <td style="background-color:${BRAND.accent};border-radius:10px;padding:6px 10px;line-height:0;">
-                          <span style="font-family:Poppins,'Inter',Arial,sans-serif;font-size:18px;font-weight:700;color:${BRAND.surface};letter-spacing:-0.5px;">
-                            Verified<span style="color:#fff;">Props</span>
-                          </span>
-                        </td>
-                      </tr>
-                    </table>
+                  <td align="center" style="padding:30px 32px 6px;font-family:Poppins,'Inter',Arial,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.5px;color:${BRAND.surface};">
+                    Verified<span style="color:${BRAND.gold};">Props</span>
                   </td>
                 </tr>
+                <tr>
+                  <td align="center" style="padding:0 32px 22px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;color:#B8BEC8;letter-spacing:1.5px;text-transform:uppercase;">
+                    Verified builders &middot; Real listings
+                  </td>
+                </tr>
+                <tr>
+                  <td style="height:3px;line-height:3px;font-size:0;background-color:${BRAND.gold};">&nbsp;</td>
+                </tr>
               </table>
-            </td>
-          </tr>
 
-          <!-- ===== BODY CARD ===== -->
-          <tr>
-            <td>
+              <!-- Body card (attached to header) -->
               <table role="presentation" class="vp-card" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${BRAND.surface};border-radius:0 0 20px 20px;">
                 <tr>
                   <td style="padding:32px;">
@@ -127,7 +123,7 @@ function baseLayout(title: string, contentHtml: string): string {
                   <td align="center" style="padding:0 0 8px;">
                     <a href="https://verifiedprops.com" style="font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:${BRAND.accent};text-decoration:none;">verifiedprops.com</a>
                     &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-                    <a href="mailto:support@verifiedprops.com" style="font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:${BRAND.accent};text-decoration:none;">support@verifiedprops.com</a>
+                    <a href="mailto:parmmarravi1162@gmail.com" style="font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:${BRAND.accent};text-decoration:none;">Support: parmmarravi1162@gmail.com</a>
                   </td>
                 </tr>
                 <tr>

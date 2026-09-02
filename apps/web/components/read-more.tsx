@@ -16,9 +16,9 @@ export function ReadMore({ text, className = "" }: ReadMoreProps) {
   const long = text.split("\n").length > COLLAPSED_LINES || text.length > 260;
 
   return (
-    <div className={className}>
+    <div className={`max-w-prose ${className}`}>
       <p
-        className={`whitespace-pre-line leading-relaxed text-slate-600 ${
+        className={`whitespace-pre-line text-sm leading-[1.75] text-slate-600 ${
           !expanded && long ? "line-clamp-4" : ""
         }`}
       >

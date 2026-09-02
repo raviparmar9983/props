@@ -26,8 +26,8 @@ export function ContactList({ slug }: ContactListProps) {
   if (contacts.length === 0) return null;
 
   return (
-    <section className="mt-8">
-      <h2 className="font-display text-lg font-semibold text-slate-900 md:text-xl">
+    <section id="contacts" className="mt-8 scroll-mt-28">
+      <h2 className="font-display text-xl font-semibold text-slate-900 md:text-[22px]">
         Builder contacts
       </h2>
       <p className="mt-1 text-xs text-slate-400">

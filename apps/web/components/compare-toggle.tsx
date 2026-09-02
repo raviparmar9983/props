@@ -7,9 +7,10 @@ import { toast } from "../lib/toast";
 interface CompareToggleProps {
   slug: string;
   className?: string;
+  size?: "sm" | "lg";
 }
 
-export function CompareToggle({ slug, className = "" }: CompareToggleProps) {
+export function CompareToggle({ slug, className = "", size = "sm" }: CompareToggleProps) {
   const { isSelected, toggle } = useCompareSelection();
   const selected = isSelected(slug);
 
@@ -25,13 +26,15 @@ export function CompareToggle({ slug, className = "" }: CompareToggleProps) {
           toast.error("You can compare up to 3 properties. Remove one to add this.", "Compare limit");
         }
       }}
-      className={`flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 active:scale-90 ${
+      className={`flex items-center justify-center rounded-full transition-all duration-200 active:scale-90 ${
+        size === "lg" ? "h-10 w-10" : "h-8 w-8"
+      } ${
         selected
           ? "animate-heart-bounce bg-accent text-white shadow-md"
           : "bg-white/80 text-slate-600 hover:bg-white hover:text-accent backdrop-blur-sm"
       } ${className}`}
     >
-      <GitCompareArrows size={15} strokeWidth={2} />
+      <GitCompareArrows size={size === "lg" ? 18 : 15} strokeWidth={2} />
     </button>
   );
 }

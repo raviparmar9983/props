@@ -52,8 +52,10 @@ const config: Config = {
       },
       borderRadius: {
         card: "16px",
+        "card-xl": "24px",
         pill: "999px",
         image: "16px",
+        "image-xl": "20px",
         input: "10px",
       },
       boxShadow: {

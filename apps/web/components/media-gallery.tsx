@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Building2, Play } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Building2, Images, Play } from "lucide-react";
 import { fileUrl } from "../lib/format";
 import { ResilientImage } from "./resilient-image";
+import { SaveToggle } from "./save-toggle";
+import { ShareButton } from "./share-button";
 
 export interface GalleryMedia {
   id: string;
@@ -17,6 +20,9 @@ interface MediaGalleryProps {
   media: GalleryMedia[];
   alt: string;
   onOpen: (index: number) => void;
+  projectId?: string | undefined;
+  shareTitle?: string | undefined;
+  shareUrl?: string | undefined;
 }
 
 const GALLERY_TYPES = new Set(["IMAGE", "VIDEO"]);
@@ -44,10 +50,10 @@ function MediaThumb({
     <button
       onClick={onClick}
       aria-label={label}
-      className={`h-14 w-full shrink-0 overflow-hidden rounded-image border-2 transition-all duration-[var(--duration-fast)] ${
+      className={`h-14 w-full min-h-0 flex-1 shrink-0 overflow-hidden rounded-xl border-2 transition-all duration-[var(--duration-fast)] ${
         active
-          ? "border-accent shadow-card-hover"
-          : "border-transparent opacity-75 hover:opacity-100"
+          ? "border-accent opacity-100 shadow-card-hover"
+          : "border-transparent opacity-70 hover:opacity-100"
       }`}
     >
       {item.type === "VIDEO" ? (
@@ -61,7 +67,40 @@ function MediaThumb({
   );
 }
 
-export function MediaGallery({ media, alt, onOpen }: MediaGalleryProps) {
+function MediaOverlayButton({
+  onClick,
+  label,
+  children,
+}: {
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      aria-label={label}
+      className="flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-800 shadow-md backdrop-blur-md transition-all duration-[var(--duration-fast)] hover:scale-105 hover:bg-white active:scale-95"
+    >
+      {children}
+    </button>
+  );
+}
+
+export function MediaGallery({
+  media,
+  alt,
+  onOpen,
+  projectId,
+  shareTitle,
+  shareUrl,
+}: MediaGalleryProps) {
+  const router = useRouter();
+
   const items = useMemo(
     () =>
       media
@@ -90,7 +129,7 @@ export function MediaGallery({ media, alt, onOpen }: MediaGalleryProps) {
 
   if (count === 0) {
     return (
-      <div className="relative flex aspect-[4/3] w-full items-center justify-center bg-gradient-to-br from-ink-blue to-slate-800 sm:aspect-[16/9] md:aspect-[16/10]">
+      <div className="relative flex aspect-[4/3] w-full items-center justify-center bg-gradient-to-br from-ink-blue to-slate-800 sm:aspect-[16/9] md:aspect-[16/10] md:rounded-[24px]">
         <div className="flex flex-col items-center gap-3 px-6 text-center">
           <Building2
             size={48}
@@ -161,7 +200,7 @@ export function MediaGallery({ media, alt, onOpen }: MediaGalleryProps) {
     <div className="md:flex md:items-stretch md:gap-2">
       {/* Main media frame */}
       <div
-        className="relative w-full overflow-hidden aspect-[4/3] sm:aspect-[16/9] md:aspect-[16/10] md:flex-1"
+        className="group relative w-full overflow-hidden aspect-[4/3] sm:aspect-[16/9] md:aspect-[16/10] md:flex-1 md:rounded-[24px]"
         style={{ touchAction: "pan-y" }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -176,7 +215,14 @@ export function MediaGallery({ media, alt, onOpen }: MediaGalleryProps) {
           }}
         >
           {items.map((item, i) => (
-            <div key={item.id} className="h-full w-full shrink-0">
+            <div
+              key={item.id}
+              className={`h-full w-full shrink-0 ${
+                item.type !== "VIDEO"
+                  ? "transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]"
+                  : ""
+              }`}
+            >
               {item.type === "VIDEO" ? (
                 <video
                   src={item.url}
@@ -208,20 +254,40 @@ export function MediaGallery({ media, alt, onOpen }: MediaGalleryProps) {
 
         {/* Video play badge */}
         {current.type === "VIDEO" && (
-          <span className="pointer-events-none absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-pill bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+          <span className="pointer-events-none absolute bottom-14 right-3 z-10 inline-flex items-center gap-1.5 rounded-pill bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
             <Play size={12} fill="currentColor" aria-hidden />
             {durations[current.id] ?? "Video"}
           </span>
         )}
 
-        {/* Count badge */}
-        <span className="pointer-events-none absolute top-3 right-3 rounded-pill bg-black/40 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-          {index + 1}/{count}
+        {/* Floating back button */}
+        <div className="absolute left-3 top-3 z-10">
+          <MediaOverlayButton
+            label="Go back"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft size={18} strokeWidth={2.2} aria-hidden />
+          </MediaOverlayButton>
+        </div>
+
+        {/* Favorite + share */}
+        {(projectId || shareUrl) && (
+          <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+            {projectId && <SaveToggle projectId={projectId} />}
+            {shareUrl && shareTitle && (
+              <ShareButton title={shareTitle} url={shareUrl} />
+            )}
+          </div>
+        )}
+
+        {/* Count pill */}
+        <span className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-pill bg-black/45 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm md:bottom-16">
+          {index + 1} / {count}
         </span>
 
         {/* Dots */}
         {count > 1 && (
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill bg-black/30 px-2 py-1 backdrop-blur-sm">
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill bg-black/30 px-2 py-1 backdrop-blur-sm md:bottom-16">
             {items.map((item, i) => (
               <button
                 key={item.id}
@@ -237,10 +303,25 @@ export function MediaGallery({ media, alt, onOpen }: MediaGalleryProps) {
             ))}
           </div>
         )}
+
+        {/* View all photos */}
+        {count > 1 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen(index);
+            }}
+            className="absolute bottom-3 right-3 z-10 hidden items-center gap-1.5 rounded-pill bg-white/95 px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-md backdrop-blur-md transition-all duration-[var(--duration-fast)] hover:bg-white hover:shadow-lg active:scale-95 sm:inline-flex md:bottom-16"
+          >
+            <Images size={14} strokeWidth={2.2} aria-hidden />
+            View all {count} photos
+          </button>
+        )}
       </div>
 
-      {/* Desktop: thumbnail rail */}
-      <div className="hidden w-24 flex-col gap-2 md:flex">
+      {/* Desktop: floating thumbnail rail (padded clear of the overlapping header) */}
+      <div className="hidden w-[104px] flex-col gap-2 pb-14 md:flex">
         {thumbnails.map((item, i) => (
           <MediaThumb
             key={item.id}
@@ -253,7 +334,7 @@ export function MediaGallery({ media, alt, onOpen }: MediaGalleryProps) {
         {hiddenCount > 0 && (
           <button
             onClick={() => onOpen(0)}
-            className="flex h-14 w-full items-center justify-center rounded-image border-2 border-dashed border-slate-300 bg-surface text-xs font-semibold text-slate-600 transition-colors hover:border-accent/40 hover:text-accent"
+            className="flex w-full flex-1 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-surface text-xs font-semibold text-slate-600 transition-colors hover:border-accent/40 hover:text-accent"
           >
             +{hiddenCount} more
           </button>
@@ -268,8 +349,10 @@ export function MediaGallery({ media, alt, onOpen }: MediaGalleryProps) {
               key={item.id}
               onClick={() => setIndex(i)}
               aria-label={`View media ${i + 1}`}
-              className={`h-16 w-24 shrink-0 overflow-hidden rounded-image border-2 transition-all duration-[var(--duration-fast)] ${
-                i === index ? "border-accent" : "border-transparent opacity-70"
+              className={`h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 transition-all duration-[var(--duration-fast)] ${
+                i === index
+                  ? "border-accent opacity-100"
+                  : "border-transparent opacity-70"
               }`}
             >
               {item.type === "VIDEO" ? (
@@ -288,7 +371,7 @@ export function MediaGallery({ media, alt, onOpen }: MediaGalleryProps) {
           {hiddenCount > 0 && (
             <button
               onClick={() => onOpen(0)}
-              className="flex h-16 w-24 shrink-0 items-center justify-center rounded-image bg-slate-100 text-xs font-semibold text-slate-600"
+              className="flex h-16 w-24 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-semibold text-slate-600"
             >
               +{hiddenCount} more
             </button>

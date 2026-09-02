@@ -7,7 +7,7 @@ import { Bell, BookHeart, House, Search, type LucideIcon } from "lucide-react";
 const TABS: { href: string; label: string; Icon: LucideIcon }[] = [
   { href: "/", label: "Home", Icon: House },
   { href: "/search", label: "Search", Icon: Search },
-  { href: "/saved", label: "Saved", Icon: BookHeart },
+  // { href: "/saved", label: "Saved", Icon: BookHeart },
   { href: "/notifications", label: "Alerts", Icon: Bell },
 ];
 

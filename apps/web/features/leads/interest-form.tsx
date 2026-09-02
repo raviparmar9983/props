@@ -196,7 +196,7 @@ export function InterestForm({
             Sending…
           </>
         ) : (
-          "Express Interest"
+          "Contact Builder"
         )}
       </PillButton>
 

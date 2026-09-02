@@ -1,10 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowRight, Building2, Home, LandPlot, Store, type LucideIcon } from "lucide-react";
 import type { UnitTypeSummary } from "../types/public";
 import { formatPrice } from "../lib/format";
 import { BottomSheet } from "./bottom-sheet";
 import { InterestForm } from "../features/leads/interest-form";
+
+const PROPERTY_TYPE_ICONS: Record<string, LucideIcon> = {
+  FLAT: Building2,
+  HOUSE: Home,
+  PLOT: LandPlot,
+  SHOP: Store,
+};
 
 interface UnitTypeCardsProps {
   projectId: string;
@@ -118,13 +126,17 @@ export function UnitTypeCards({
       <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 md:hidden">
         {unitTypes.map((ut) => {
           const available = ut.availableCount > 0;
+          const TypeIcon = PROPERTY_TYPE_ICONS[ut.propertyType] ?? Building2;
           return (
             <div
               key={ut.id}
-              className={`flex w-56 shrink-0 flex-col gap-2 rounded-card border border-slate-200 bg-surface p-4 shadow-card transition-all duration-[var(--duration-base)] ease-[var(--ease-spring)] hover:border-accent/40 hover:shadow-card-hover ${
+              className={`flex w-60 shrink-0 flex-col gap-2 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-card-hover ${
                 available ? "" : "opacity-60"
               }`}
             >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft/70 text-accent-dark">
+                <TypeIcon size={18} strokeWidth={1.8} aria-hidden />
+              </span>
               <span className="font-display text-base font-semibold text-slate-900">
                 {ut.label}
               </span>
@@ -133,7 +145,7 @@ export function UnitTypeCards({
                 {formatPrice(ut.price)}
               </span>
               <span
-                className={`mt-auto w-fit rounded-pill px-2 py-0.5 text-xs font-semibold ${
+                className={`w-fit rounded-pill px-2 py-0.5 text-xs font-semibold ${
                   available
                     ? "bg-success-soft text-success"
                     : "bg-danger-soft text-danger"
@@ -145,70 +157,65 @@ export function UnitTypeCards({
               </span>
               <button
                 onClick={() => setSelectedId(ut.id)}
-                className="mt-2 w-full rounded-pill border border-accent/30 px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-white active:scale-[0.98]"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-accent/40 hover:text-accent active:scale-[0.98]"
               >
-                View details
+                View details →
               </button>
             </div>
           );
         })}
       </div>
 
-      {/* Desktop: comparison table */}
-      <div className="hidden overflow-hidden rounded-card border border-slate-200 bg-surface shadow-card md:block">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold tracking-wide text-slate-400 uppercase">
-              <th className="px-5 py-3">Unit</th>
-              <th className="px-5 py-3">Carpet area</th>
-              <th className="px-5 py-3">Price</th>
-              <th className="px-5 py-3">Availability</th>
-              <th className="px-5 py-3 text-right">Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {unitTypes.map((ut) => {
-              const available = ut.availableCount > 0;
-              return (
-                <tr
-                  key={ut.id}
-                  className={`border-b border-slate-100 last:border-0 ${
-                    available ? "" : "opacity-60"
+      {/* Desktop: interactive unit rows */}
+      <div className="hidden flex-col gap-3 md:flex">
+        {unitTypes.map((ut) => {
+          const available = ut.availableCount > 0;
+          const TypeIcon = PROPERTY_TYPE_ICONS[ut.propertyType] ?? Building2;
+          return (
+            <button
+              key={ut.id}
+              onClick={() => setSelectedId(ut.id)}
+              aria-label={`View details for ${ut.label}`}
+              className={`group/row flex w-full items-center gap-4 rounded-2xl border border-slate-200 bg-surface px-5 py-4 text-left shadow-card transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-card-hover ${
+                available ? "" : "opacity-60"
+              }`}
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft/70 text-accent-dark">
+                <TypeIcon size={20} strokeWidth={1.8} aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-semibold text-slate-900">
+                  {ut.label}
+                </span>
+                <span className="mt-0.5 block text-sm text-slate-400">
+                  {formatArea(ut)}
+                </span>
+              </span>
+              <span className="hidden shrink-0 flex-col items-end gap-1 sm:flex">
+                <span className="font-display text-lg font-bold leading-none text-slate-900">
+                  {formatPrice(ut.price)}
+                </span>
+                <span
+                  className={`rounded-pill px-2 py-0.5 text-[11px] font-semibold ${
+                    available
+                      ? "bg-success-soft text-success"
+                      : "bg-danger-soft text-danger"
                   }`}
                 >
-                  <td className="px-5 py-4 font-semibold text-slate-900">
-                    {ut.label}
-                  </td>
-                  <td className="px-5 py-4 text-slate-600">{formatArea(ut)}</td>
-                  <td className="px-5 py-4 font-display font-bold text-slate-900">
-                    {formatPrice(ut.price)}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`rounded-pill px-2.5 py-1 text-xs font-semibold ${
-                        available
-                          ? "bg-success-soft text-success"
-                          : "bg-danger-soft text-danger"
-                      }`}
-                    >
-                      {available
-                        ? `${ut.availableCount} unit${ut.availableCount !== 1 ? "s" : ""} available`
-                        : "Sold out"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <button
-                      onClick={() => setSelectedId(ut.id)}
-                      className="rounded-pill border border-accent/30 px-4 py-1.5 text-xs font-semibold text-accent transition-colors hover:bg-accent hover:text-white"
-                    >
-                      View details
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  {available
+                    ? `${ut.availableCount} unit${ut.availableCount !== 1 ? "s" : ""} available`
+                    : "Sold out"}
+                </span>
+              </span>
+              <span
+                aria-hidden
+                className="ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-all duration-300 group-hover/row:border-accent group-hover/row:bg-accent group-hover/row:text-white"
+              >
+                <ArrowRight size={15} strokeWidth={2.2} />
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Details bottom sheet */}

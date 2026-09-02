@@ -12,17 +12,19 @@ export function Skeleton({ className = "", style }: SkeletonProps) {
 export function ProjectCardSkeleton({ index = 0 }: { index?: number }) {
   return (
     <div
-      className="animate-fade-rise overflow-hidden rounded-card bg-surface shadow-card"
+      className="animate-fade-rise rounded-card-xl bg-surface p-1.5 shadow-card"
       style={{ animationDelay: `${Math.min(index * 40, 320)}ms` }}
       aria-hidden
     >
-      <Skeleton className="aspect-[4/3] w-full rounded-none" />
-      <div className="space-y-3 p-4">
-        <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="aspect-[4/3] w-full rounded-image-xl" />
+      <div className="flex flex-col gap-2 px-2 pb-1 pt-3">
         <Skeleton className="h-3 w-1/2" />
-        <div className="flex items-end justify-between pt-2">
-          <Skeleton className="h-6 w-24" />
-          <Skeleton className="h-4 w-16" />
+        <div className="flex items-end justify-between gap-2">
+          <div className="space-y-1.5">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-2.5 w-20" />
+          </div>
+          <Skeleton className="h-11 w-[118px] rounded-xl" />
         </div>
       </div>
     </div>

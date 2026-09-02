@@ -9,7 +9,7 @@ import { useAuthSheet } from "../lib/auth-sheet-store";
 const NAV_LINKS = [
   { href: "/", label: "Home", Icon: House },
   { href: "/search", label: "Browse", Icon: Compass },
-  { href: "/saved", label: "Saved", Icon: BookHeart },
+  // { href: "/saved", label: "Saved", Icon: BookHeart },
 ];
 
 export function SiteHeader() {
