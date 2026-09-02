@@ -1,0 +1,9 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" rx="14" fill="#E85D2C"/>
+  <!-- simplified house -->
+  <path d="M16 30 L32 17 L48 30" fill="none" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 27 L20 47 L44 47 L44 27" fill="none" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- checkmark, bold, bottom right -->
+  <circle cx="46" cy="44" r="13" fill="#FFFFFF"/>
+  <path d="M40 44 L44.5 48.5 L53 38" fill="none" stroke="#E85D2C" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

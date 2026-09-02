@@ -1,0 +1,25 @@
+<svg width="640" height="164" viewBox="0 0 640 164" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .wordmark { font-family: 'Poppins', 'Segoe UI', Arial, sans-serif; }
+    </style>
+  </defs>
+  <g transform="translate(10,10)">
+    <path d="M80 0
+             L152 24
+             L152 88
+             C152 132 122 162 80 178
+             C38 162 8 132 8 88
+             L8 24
+             Z"
+          fill="#E85D2C"/>
+    <g fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M40 92 L80 58 L120 92" />
+      <path d="M50 84 L50 122 L110 122 L110 84" />
+      <path d="M72 122 L72 100 L88 100 L88 122" />
+    </g>
+    <circle cx="118" cy="118" r="24" fill="#FFFFFF"/>
+    <path d="M108 118 L116 126 L130 108" fill="none" stroke="#E85D2C" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="196" y="108" class="wordmark" font-size="58" font-weight="700" fill="#FFFFFF">Properties</text>
+</svg>

@@ -1,0 +1,694 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Enums ──────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  BUILDER
+  CUSTOMER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum BuilderVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+enum ProjectVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProjectStatus {
+  DRAFT
+  UPCOMING
+  UNDER_CONSTRUCTION
+  READY
+  ARCHIVED
+}
+
+enum ProjectReviewStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum PropertyType {
+  FLAT
+  HOUSE
+  PLOT
+  TENEMENT
+  SHOP
+  CORPORATE
+}
+
+enum AreaUnit {
+  SQFT
+  SQM
+}
+
+enum PriceUnit {
+  LAKH
+  CRORE
+  TOTAL
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  FLOOR_PLAN
+  BROCHURE
+  MASTER_PLAN
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  IN_PROGRESS
+  CONVERTED
+  CLOSED
+}
+
+enum OtpPurpose {
+  LOGIN
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+}
+
+enum VerificationAction {
+  APPROVED
+  REJECTED
+}
+
+enum ReraStatus {
+  ACTIVE
+  EXPIRED
+  NOT_REQUIRED
+}
+
+enum CertificateStatus {
+  NOT_APPLICABLE
+  PENDING
+  RECEIVED
+}
+
+enum LandTitleType {
+  FREEHOLD
+  LEASEHOLD
+}
+
+enum LitigationStatus {
+  NONE
+  PENDING
+}
+
+enum LandmarkCategory {
+  SCHOOL
+  HOSPITAL
+  METRO
+  RAILWAY
+  AIRPORT
+  HIGHWAY
+  MALL
+  OTHER
+}
+
+enum SpecCategory {
+  FLOORING
+  KITCHEN
+  BATHROOM
+  DOORS_WINDOWS
+  ELECTRICAL
+  PAINT
+  OTHER
+}
+
+enum PaymentPlanType {
+  CONSTRUCTION_LINKED
+  POSSESSION_LINKED
+  FLEXI
+}
+
+enum Facing {
+  NORTH
+  SOUTH
+  EAST
+  WEST
+  NORTH_EAST
+  NORTH_WEST
+  SOUTH_EAST
+  SOUTH_WEST
+}
+
+enum SiteVisitStatus {
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+// ── Core ───────────────────────────────────────────
+
+model User {
+  id              String     @id @default(uuid())
+  email           String     @unique
+  phone           String?
+  passwordHash    String?
+  role            UserRole
+  status          UserStatus @default(ACTIVE)
+  isEmailVerified Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  builderProfile    BuilderProfile?
+  leads             Lead[]
+  savedProperties   SavedProperty[]
+  notifications     Notification[]
+  refreshTokens     RefreshToken[]
+  auditLogs         AuditLog[]
+  verifiedBuilders  BuilderProfile[]   @relation("VerifiedBy")
+  builderReviews    BuilderReview[]
+  siteVisitBookings SiteVisitBooking[]
+
+  @@index([role, status])
+}
+
+model BuilderProfile {
+  id                     String                    @id @default(uuid())
+  userId                 String                    @unique
+  user                   User                      @relation(fields: [userId], references: [id])
+  companyName            String
+  slug                   String                    @unique
+  reraNumber             String?
+  gstNumber              String?
+  logo                   String?
+  yearsInBusiness        Int?
+  totalProjectsCompleted Int?
+  onTimeDeliveryRate     Float?
+  cityId                 String
+  city                   City                      @relation(fields: [cityId], references: [id])
+  phone                  String?
+  verificationStatus     BuilderVerificationStatus @default(PENDING)
+  verificationDocs       Json?
+  rejectionReason        String?
+  verifiedAt             DateTime?
+  verifiedById           String?
+  verifiedBy             User?                     @relation("VerifiedBy", fields: [verifiedById], references: [id])
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+
+  projects          Project[]
+  contacts          Contact[]
+  leads             Lead[]
+  verificationLogs  BuilderVerificationLog[]
+  portfolioProjects BuilderPortfolioProject[]
+  reviews           BuilderReview[]
+
+  @@index([cityId, verificationStatus])
+}
+
+model City {
+  id        String @id @default(uuid())
+  name      String
+  slug      String @unique
+  stateName String
+  latitude  Float?
+  longitude Float?
+
+  localities Locality[]
+  builders   BuilderProfile[]
+  projects   Project[]
+
+  @@unique([name, stateName])
+}
+
+model Locality {
+  id     String @id @default(uuid())
+  cityId String
+  city   City   @relation(fields: [cityId], references: [id])
+  name   String
+  slug   String
+
+  projects Project[]
+
+  @@unique([cityId, slug])
+  @@index([cityId, name])
+}
+
+model Project {
+  id                     String                    @id @default(uuid())
+  builderId              String
+  builder                BuilderProfile            @relation(fields: [builderId], references: [id])
+  cityId                 String
+  city                   City                      @relation(fields: [cityId], references: [id])
+  localityId             String
+  locality               Locality                  @relation(fields: [localityId], references: [id])
+  title                  String
+  slug                   String                    @unique
+  description            String?
+  status                 ProjectStatus             @default(DRAFT)
+  address                String?
+  latitude               Float?
+  longitude              Float?
+  reraProjectNumber      String?
+  reraStatus             ReraStatus?
+  reraPortalUrl          String?
+  possessionDate         DateTime?
+  occupancyCertStatus    CertificateStatus         @default(NOT_APPLICABLE)
+  commencementCertStatus CertificateStatus         @default(NOT_APPLICABLE)
+  landTitleType          LandTitleType?
+  litigationStatus       LitigationStatus          @default(NONE)
+  litigationDetails      String?
+  structureType          String?
+  powerBackupCapacity    String?
+  waterSource            String?
+  liftBrand              String?
+  liftCount              Int?
+  fireSafetyCompliant    Boolean                   @default(false)
+  openSpacePercent       Float?
+  greenAreaPercent       Float?
+  hasCctv                Boolean                   @default(false)
+  hasGatedEntry          Boolean                   @default(false)
+  securityGuardCount     Int?
+  petPolicy              String?
+  neighborhoodOverview   String?
+  videoWalkthroughUrl    String?
+  virtualTour3dUrl       String?
+  allowsSiteVisitBooking Boolean                   @default(true)
+  isFeatured             Boolean                   @default(false)
+  reviewStatus           ProjectReviewStatus       @default(DRAFT)
+  verificationStatus     ProjectVerificationStatus @default(PENDING)
+  rejectionReason        String?
+  reviewedAt             DateTime?
+  reviewNotes            String?
+  metaTitle              String?
+  metaDescription        String?
+  ogImageUrl             String?
+  publishedAt            DateTime?
+  deletedAt              DateTime?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+
+  towers              Tower[]
+  unitTypes           UnitType[]
+  media               ProjectMedia[]
+  amenities           ProjectAmenity[]
+  contacts            Contact[]
+  leads               Lead[]
+  savedBy             SavedProperty[]
+  viewLogs            ProjectViewLog[]
+  landmarks           NearbyLandmark[]
+  priceComponents     PriceComponent[]
+  paymentPlans        PaymentPlan[]
+  bankPartners        BankPartner[]
+  constructionUpdates ConstructionUpdate[]
+  specifications      SpecificationItem[]
+  siteVisits          SiteVisitBooking[]
+  faqs                ProjectFAQ[]
+  reviewLogs          ProjectReviewLog[]
+
+  @@index([builderId, status])
+  @@index([cityId, localityId, status])
+  @@index([status, isFeatured])
+  @@index([verificationStatus, status])
+  @@index([reviewStatus, status])
+}
+
+model Tower {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  name        String
+  totalFloors Int?
+  createdAt   DateTime @default(now())
+
+  unitTypes UnitType[]
+
+  @@index([projectId])
+}
+
+model UnitType {
+  id             String       @id @default(uuid())
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id])
+  towerId        String?
+  tower          Tower?       @relation(fields: [towerId], references: [id])
+  propertyType   PropertyType
+  label          String
+  bedrooms       Int?
+  floorNumber    Int?
+  facing         Facing?
+  viewType       String?
+  carpetArea     Float?
+  builtUpArea    Float?
+  areaUnit       AreaUnit     @default(SQFT)
+  price          Decimal      @db.Decimal(12, 2)
+  priceUnit      PriceUnit    @default(TOTAL)
+  bookingAmount  Decimal?     @db.Decimal(12, 2)
+  totalCount     Int          @default(1)
+  availableCount Int          @default(1)
+  attributes     Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  leads        Lead[]
+  priceHistory PriceHistory[]
+  media        ProjectMedia[]
+
+  @@index([projectId, propertyType])
+  @@index([price])
+}
+
+model PriceHistory {
+  id         String   @id @default(uuid())
+  unitTypeId String
+  unitType   UnitType @relation(fields: [unitTypeId], references: [id])
+  oldPrice   Decimal  @db.Decimal(12, 2)
+  newPrice   Decimal  @db.Decimal(12, 2)
+  changedAt  DateTime @default(now())
+
+  @@index([unitTypeId])
+}
+
+model Amenity {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  icon        String?
+  projects    ProjectAmenity[]
+}
+
+model ProjectAmenity {
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+  amenityId Int
+  amenity   Amenity @relation(fields: [amenityId], references: [id])
+
+  @@id([projectId, amenityId])
+}
+
+model ProjectMedia {
+  id           String    @id @default(uuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id])
+  unitTypeId   String?
+  unitType     UnitType? @relation(fields: [unitTypeId], references: [id])
+  type         MediaType
+  url          String
+  displayOrder Int       @default(0)
+  isPrimary    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  @@index([projectId, type])
+  @@index([projectId, unitTypeId])
+}
+
+model Contact {
+  id          String         @id @default(uuid())
+  builderId   String
+  builder     BuilderProfile @relation(fields: [builderId], references: [id])
+  projectId   String?
+  project     Project?       @relation(fields: [projectId], references: [id])
+  name        String
+  designation String?
+  phone       String
+  email       String?
+  isPrimary   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+
+  @@index([builderId])
+  @@index([projectId])
+}
+
+model Lead {
+  id          String         @id @default(uuid())
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id])
+  unitTypeId  String?
+  unitType    UnitType?      @relation(fields: [unitTypeId], references: [id])
+  builderId   String
+  builder     BuilderProfile @relation(fields: [builderId], references: [id])
+  customerId  String
+  customer    User           @relation(fields: [customerId], references: [id])
+  message     String?
+  status      LeadStatus     @default(NEW)
+  contactedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([builderId, status])
+  @@index([projectId, createdAt])
+  @@index([customerId])
+}
+
+model SavedProperty {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@id([userId, projectId])
+}
+
+model OtpVerification {
+  id        String     @id @default(uuid())
+  email     String
+  otpHash   String
+  purpose   OtpPurpose @default(LOGIN)
+  attempts  Int        @default(0)
+  isUsed    Boolean    @default(false)
+  expiresAt DateTime
+  createdAt DateTime   @default(now())
+
+  @@index([email, purpose])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Notification {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  type              String
+  title             String
+  body              String?
+  isRead            Boolean  @default(false)
+  relatedEntityType String?
+  relatedEntityId   String?
+  createdAt         DateTime @default(now())
+
+  @@index([userId, isRead])
+}
+
+model BuilderVerificationLog {
+  id         String             @id @default(uuid())
+  builderId  String
+  builder    BuilderProfile     @relation(fields: [builderId], references: [id])
+  reviewedBy String
+  action     VerificationAction
+  reason     String?
+  createdAt  DateTime           @default(now())
+
+  @@index([builderId])
+}
+
+model ProjectViewLog {
+  id        BigInt   @id @default(autoincrement())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  viewDate  DateTime @db.Date
+  viewCount BigInt   @default(0)
+
+  @@unique([projectId, viewDate])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  entity    String
+  entityId  String
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+}
+
+model NearbyLandmark {
+  id                String           @id @default(uuid())
+  projectId         String
+  project           Project          @relation(fields: [projectId], references: [id])
+  category          LandmarkCategory
+  name              String
+  distanceKm        Float
+  travelTimeMinutes Int?
+  createdAt         DateTime         @default(now())
+
+  @@index([projectId])
+}
+
+model PriceComponent {
+  id                    String   @id @default(uuid())
+  projectId             String
+  project               Project  @relation(fields: [projectId], references: [id])
+  label                 String
+  amount                Decimal  @db.Decimal(12, 2)
+  isIncludedInBasePrice Boolean  @default(false)
+  displayOrder          Int      @default(0)
+  createdAt             DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model PaymentPlan {
+  id            String          @id @default(uuid())
+  projectId     String
+  project       Project         @relation(fields: [projectId], references: [id])
+  name          String
+  type          PaymentPlanType
+  bookingAmount Decimal         @db.Decimal(12, 2)
+  milestones    Json
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([projectId])
+}
+
+model BankPartner {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  bankName  String
+  logoUrl   String?
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model ConstructionUpdate {
+  id              String   @id @default(uuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id])
+  title           String
+  description     String?
+  photoUrl        String?
+  updateDate      DateTime @db.Date
+  progressPercent Int?
+  createdAt       DateTime @default(now())
+
+  @@index([projectId, updateDate])
+}
+
+model SpecificationItem {
+  id        String       @id @default(uuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id])
+  category  SpecCategory
+  label     String
+  value     String
+  createdAt DateTime     @default(now())
+
+  @@index([projectId, category])
+}
+
+model BuilderPortfolioProject {
+  id              String         @id @default(uuid())
+  builderId       String
+  builder         BuilderProfile @relation(fields: [builderId], references: [id])
+  title           String
+  city            String
+  completionYear  Int?
+  unitsCount      Int?
+  deliveredOnTime Boolean?
+  coverImageUrl   String?
+  description     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([builderId])
+}
+
+model BuilderReview {
+  id                 String         @id @default(uuid())
+  builderId          String
+  builder            BuilderProfile @relation(fields: [builderId], references: [id])
+  customerId         String?
+  customer           User?          @relation(fields: [customerId], references: [id])
+  reviewerName       String
+  rating             Int
+  comment            String?
+  isVerifiedPurchase Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+
+  @@index([builderId])
+}
+
+model SiteVisitBooking {
+  id            String          @id @default(uuid())
+  projectId     String
+  project       Project         @relation(fields: [projectId], references: [id])
+  customerId    String?
+  customer      User?           @relation(fields: [customerId], references: [id])
+  customerName  String
+  customerEmail String
+  preferredDate DateTime        @db.Date
+  preferredSlot String?
+  status        SiteVisitStatus @default(REQUESTED)
+  notes         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([projectId, status])
+}
+
+model ProjectFAQ {
+  id           String   @id @default(uuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id])
+  question     String
+  answer       String
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model ProjectReviewLog {
+  id         String              @id @default(uuid())
+  projectId  String
+  project    Project             @relation(fields: [projectId], references: [id])
+  action     ProjectReviewStatus
+  reason     String?
+  notes      String?
+  reviewedBy String
+  createdAt  DateTime            @default(now())
+
+  @@index([projectId, createdAt])
+}

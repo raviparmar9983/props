@@ -1,0 +1,16 @@
+{
+  "extends": "../../packages/tsconfig/base.json",
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "outDir": "dist",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": true,
+    "exactOptionalPropertyTypes": false,
+    "strictPropertyInitialization": false
+  },
+  "include": ["src/**/*.ts"]
+}
