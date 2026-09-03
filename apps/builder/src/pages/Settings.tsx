@@ -20,13 +20,15 @@ import {
   FormControlLabel,
   Rating,
 } from "@mui/material";
-import VerifiedIcon from "@mui/icons-material/Verified";
-import PendingIcon from "@mui/icons-material/Pending";
-import ErrorIcon from "@mui/icons-material/Error";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import AddIcon from "@mui/icons-material/Add";
+import {
+  VerifiedIcon,
+  AccessTimeIcon as PendingIcon,
+  ErrorIcon,
+  UploadFileIcon,
+  DeleteIcon,
+  EditIcon,
+  AddIcon,
+} from "../components/icons";
 import {
   useProfile,
   useUpdateProfile,
@@ -230,33 +232,66 @@ export default function Settings() {
     );
   };
 
+  const verificationCopy: Record<string, string> = {
+    VERIFIED: "Your profile is verified. Projects you publish are visible to buyers with a Verified Builder badge.",
+    PENDING: "Your profile is awaiting review by our team. Upload your RERA or other verification documents below to speed things up.",
+    REJECTED: "Your profile was not approved. Review the reason below, update your details, and re-upload documents to apply again.",
+    SUSPENDED: "Your account has been suspended. Contact support for details.",
+  };
+
   return (
-    <Box sx={{ maxWidth: 600 }}>
+    <Box sx={{ maxWidth: 720 }}>
       <Typography variant="h4" fontWeight={700} gutterBottom>
         Settings
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        Manage your company profile, verification documents, and public track record.
       </Typography>
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Verification Status
-          </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-            <StatusBadge status={profile.verificationStatus} size="medium" />
-            {profile.verificationStatus === "VERIFIED" && (
-              <VerifiedIcon sx={{ color: "success.main" }} />
-            )}
-            {profile.verificationStatus === "PENDING" && (
-              <PendingIcon sx={{ color: "warning.main" }} />
-            )}
-            {profile.verificationStatus === "REJECTED" && (
-              <ErrorIcon sx={{ color: "error.main" }} />
-            )}
+          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, mb: profile.rejectionReason ? 2 : 0 }}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor:
+                  profile.verificationStatus === "VERIFIED"
+                    ? "success.light"
+                    : profile.verificationStatus === "PENDING"
+                      ? "warning.light"
+                      : "error.light",
+                color:
+                  profile.verificationStatus === "VERIFIED"
+                    ? "success.main"
+                    : profile.verificationStatus === "PENDING"
+                      ? "warning.main"
+                      : "error.main",
+              }}
+            >
+              {profile.verificationStatus === "VERIFIED" && <VerifiedIcon />}
+              {profile.verificationStatus === "PENDING" && <PendingIcon />}
+              {(profile.verificationStatus === "REJECTED" || profile.verificationStatus === "SUSPENDED") && (
+                <ErrorIcon />
+              )}
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexWrap: "wrap" }}>
+                <Typography variant="h6">Verification Status</Typography>
+                <StatusBadge status={profile.verificationStatus} />
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                {verificationCopy[profile.verificationStatus] ?? ""}
+              </Typography>
+            </Box>
           </Box>
           {profile.rejectionReason && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {profile.rejectionReason}
-            </Alert>
+            <Alert severity="error">{profile.rejectionReason}</Alert>
           )}
         </CardContent>
       </Card>

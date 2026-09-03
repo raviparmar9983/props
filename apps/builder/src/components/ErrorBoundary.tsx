@@ -1,6 +1,6 @@
 import { Component, type ReactNode } from "react";
 import { Box, Typography, Button } from "@mui/material";
-import ErrorIcon from "@mui/icons-material/Error";
+import { ErrorIcon } from "./icons";
 
 interface Props {
   children: ReactNode;

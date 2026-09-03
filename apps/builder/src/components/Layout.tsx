@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
   Alert,
+  Badge,
   Box,
   CssBaseline,
   Drawer,
@@ -22,14 +23,17 @@ import {
   Breadcrumbs,
   Tooltip,
 } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import FolderIcon from "@mui/icons-material/Folder";
-import SettingsIcon from "@mui/icons-material/Settings";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import {
+  MenuIcon,
+  DashboardIcon,
+  FolderIcon,
+  SettingsIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  NotificationsIcon,
+} from "./icons";
 import { useAuthContext } from "../lib/contexts/AuthContext";
+import { useNotifications } from "../lib/hooks";
 
 const DRAWER_WIDTH = 260;
 const COLLAPSED_WIDTH = 72;
@@ -72,6 +76,8 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthContext();
+  const { data: unreadRes } = useNotifications({ isRead: false, limit: 1 });
+  const unreadCount = unreadRes?.meta.total ?? 0;
 
   const crumbs = getBreadcrumbs(location.pathname);
   const collapsed = !desktopOpen && !isMobile;
@@ -337,7 +343,7 @@ export function Layout({ children }: LayoutProps) {
             >
               <MenuIcon />
             </IconButton>
-            <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ flex: 1 }}>
+            <Breadcrumbs separator={<ChevronRightIcon fontSize="small" />} sx={{ flex: 1 }}>
               {crumbs.map((c, i) => (
                 <Typography
                   key={c.path}
@@ -355,6 +361,23 @@ export function Layout({ children }: LayoutProps) {
                 </Typography>
               ))}
             </Breadcrumbs>
+            <Tooltip title={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}` : "Notifications"}>
+              <IconButton
+                component={Link}
+                to="/"
+                sx={{ color: "text.secondary" }}
+                aria-label="Notifications"
+              >
+                <Badge
+                  badgeContent={unreadCount}
+                  max={9}
+                  color="error"
+                  sx={{ "& .MuiBadge-badge": { fontSize: "0.625rem", height: 16, minWidth: 16 } }}
+                >
+                  <NotificationsIcon fontSize="small" />
+                </Badge>
+              </IconButton>
+            </Tooltip>
             <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ ml: 1 }}>
               <Avatar sx={{ width: 36, height: 36, bgcolor: "primary.main", fontSize: "0.875rem" }}>
                 {user?.email?.charAt(0).toUpperCase() ?? "B"}

@@ -27,9 +27,7 @@ import {
   Chip,
   Stack,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import AddIcon from "@mui/icons-material/Add";
+import { DeleteIcon, EditIcon, AddIcon } from "../components/icons";
 import {
   useProject,
   useUpdateProject,

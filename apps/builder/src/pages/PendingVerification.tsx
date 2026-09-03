@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Box, Card, CardContent, Typography, Button } from "@mui/material";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { AccessTimeIcon, UploadFileIcon } from "../components/icons";
 import { useAuthContext } from "../lib/contexts/AuthContext";
 
 export default function PendingVerification() {

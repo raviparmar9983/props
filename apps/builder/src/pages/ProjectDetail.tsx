@@ -31,16 +31,18 @@ import {
   Alert,
   Stack,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import AddIcon from "@mui/icons-material/Add";
-import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import PublishIcon from "@mui/icons-material/Publish";
-import StopCircleIcon from "@mui/icons-material/StopCircle";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
+import {
+  DeleteIcon,
+  EditIcon,
+  AddIcon,
+  StarIcon,
+  StarBorderIcon,
+  ArrowUpwardIcon,
+  ArrowDownwardIcon,
+  PublishIcon,
+  StopCircleIcon,
+  UploadFileIcon,
+} from "../components/icons";
 import {
   useProject,
   useUpdateProject,
@@ -67,6 +69,7 @@ import {
   useUpdateProjectAmenities,
 } from "../lib/hooks";
 import { StatusBadge } from "../components/StatusBadge";
+import { EmptyState } from "../components/EmptyState";
 import { formatPrice, formatArea } from "../utils/format";
 import {
   LegalComplianceTab,
@@ -120,6 +123,8 @@ function OverviewTab({ projectId }: { projectId: string }) {
   };
 
   return (
+    <Card>
+      <CardContent>
     <Stack spacing={2} sx={{ maxWidth: 600 }}>
       <TextField
         label="Title"
@@ -175,6 +180,8 @@ function OverviewTab({ projectId }: { projectId: string }) {
         </Box>
       )}
     </Stack>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -235,7 +242,8 @@ function TowersTab({ projectId }: { projectId: string }) {
     );
 
   return (
-    <Box>
+    <Card>
+      <CardContent>
       <Box
         sx={{
           display: "flex",
@@ -351,7 +359,8 @@ function TowersTab({ projectId }: { projectId: string }) {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -563,7 +572,8 @@ function UnitTypesTab({ projectId }: { projectId: string }) {
     );
 
   return (
-    <Box>
+    <Card>
+      <CardContent>
       <Box
         sx={{
           display: "flex",
@@ -952,7 +962,8 @@ function UnitTypesTab({ projectId }: { projectId: string }) {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1017,7 +1028,8 @@ function MediaTab({ projectId }: { projectId: string }) {
     );
 
   return (
-    <Box>
+    <Card>
+      <CardContent>
       <Box
         sx={{
           display: "flex",
@@ -1197,17 +1209,14 @@ function MediaTab({ projectId }: { projectId: string }) {
         ))}
       </Box>
       {sorted.length === 0 && (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          align="center"
-          sx={{ py: 4 }}
-        >
-          No media uploaded yet. Click Upload to add images, floor plans, or
-          brochures.
-        </Typography>
+        <EmptyState
+          icon={<UploadFileIcon sx={{ fontSize: 48 }} />}
+          title="No media uploaded yet"
+          description="Add images, floor plans, brochures, or a master plan so buyers can see what you're offering."
+        />
       )}
-    </Box>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1301,7 +1310,8 @@ function ContactsTab({ projectId }: { projectId: string }) {
     );
 
   return (
-    <Box>
+    <Card>
+      <CardContent>
       <Box
         sx={{
           display: "flex",
@@ -1472,7 +1482,8 @@ function ContactsTab({ projectId }: { projectId: string }) {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1495,7 +1506,11 @@ function AmenitiesTab({ projectId }: { projectId: string }) {
     );
 
   return (
-    <Box>
+    <Card>
+      <CardContent>
+      <Typography variant="h6" gutterBottom>
+        Amenities
+      </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Select the amenities available in this project. Your selection shows up
         on the public listing.
@@ -1544,7 +1559,8 @@ function AmenitiesTab({ projectId }: { projectId: string }) {
             : `${currentIds.length} amenity${currentIds.length !== 1 ? "ies" : ""} selected`}
         </Typography>
       </Box>
-    </Box>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1578,14 +1594,14 @@ export default function ProjectDetail() {
   return (
     <Box>
       {/* Header */}
-      <Box
+      <Card sx={{ mb: 3 }}>
+      <CardContent
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", sm: "center" },
           flexDirection: { xs: "column", sm: "row" },
           gap: 1.5,
-          mb: 3,
         }}
       >
         <Box sx={{ minWidth: 0 }}>
@@ -1633,10 +1649,11 @@ export default function ProjectDetail() {
             </Button>
           )}
         </Box>
-      </Box>
+      </CardContent>
+      </Card>
 
       {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+      <Card sx={{ mb: 3, px: 1 }}>
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v)}
@@ -1657,7 +1674,7 @@ export default function ProjectDetail() {
           <Tab label="Media" />
           <Tab label="Contacts" />
         </Tabs>
-      </Box>
+      </Card>
 
       {tab === 0 && <OverviewTab projectId={projectId} />}
       {tab === 1 && <TowersTab projectId={projectId} />}

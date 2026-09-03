@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Box, Card, CardContent, Typography, Button } from "@mui/material";
-import ErrorIcon from "@mui/icons-material/Error";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { ErrorIcon, UploadFileIcon } from "../components/icons";
 import { useAuthContext } from "../lib/contexts/AuthContext";
 
 export default function Rejected() {
