@@ -33,7 +33,7 @@ import {
   NotificationsIcon,
 } from "./icons";
 import { useAuthContext } from "../lib/contexts/AuthContext";
-import { useNotifications } from "../lib/hooks";
+import { useNotifications, useProject } from "../lib/hooks";
 
 const DRAWER_WIDTH = 260;
 const COLLAPSED_WIDTH = 72;
@@ -44,20 +44,35 @@ const NAV_ITEMS = [
   { label: "Settings", path: "/settings", icon: <SettingsIcon /> },
 ];
 
-function getBreadcrumbs(pathname: string): { label: string; path: string }[] {
+// A path segment that's an opaque id (uuid, cuid, ...) rather than a real
+// route word — these never make a readable breadcrumb label on their own.
+const ID_SEGMENT = /^[0-9a-f-]{8,}$/i;
+
+interface Crumb {
+  label: string;
+  path: string;
+  /** Raw path segment, set only when it's an opaque id needing a real-title lookup. */
+  idValue: string | null;
+}
+
+function getBreadcrumbs(pathname: string): Crumb[] {
   const segments = pathname.split("/").filter(Boolean);
-  const crumbs: { label: string; path: string }[] = [];
+  const crumbs: Crumb[] = [];
 
   if (segments.length === 0) {
-    crumbs.push({ label: "Dashboard", path: "/" });
+    crumbs.push({ label: "Dashboard", path: "/", idValue: null });
     return crumbs;
   }
 
   let currentPath = "";
   for (const seg of segments) {
     currentPath += `/${seg}`;
-    const label = seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " ");
-    crumbs.push({ label, path: currentPath });
+    if (ID_SEGMENT.test(seg)) {
+      crumbs.push({ label: "", path: currentPath, idValue: seg });
+    } else {
+      const label = seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " ");
+      crumbs.push({ label, path: currentPath, idValue: null });
+    }
   }
 
   return crumbs;
@@ -79,7 +94,16 @@ export function Layout({ children }: LayoutProps) {
   const { data: unreadRes } = useNotifications({ isRead: false, limit: 1 });
   const unreadCount = unreadRes?.meta.total ?? 0;
 
-  const crumbs = getBreadcrumbs(location.pathname);
+  const rawCrumbs = getBreadcrumbs(location.pathname);
+
+  // The only route with an opaque id segment today is /projects/:id — look
+  // up its title so the breadcrumb reads "Silver Enclave" instead of the
+  // raw uuid. (Falls back to a generic label while the title is loading.)
+  const idSegment = rawCrumbs.find((c) => c.idValue !== null)?.idValue ?? "";
+  const { data: crumbProject } = useProject(idSegment);
+  const crumbs = rawCrumbs.map((c) =>
+    c.idValue !== null ? { ...c, label: crumbProject?.title ?? "Project" } : c,
+  );
   const collapsed = !desktopOpen && !isMobile;
 
   const handleDesktopToggle = useCallback(() => {
@@ -307,6 +331,7 @@ export function Layout({ children }: LayoutProps) {
         component="main"
         sx={{
           flexGrow: 1,
+          minWidth: 0,
           display: "flex",
           flexDirection: "column",
           minHeight: "100vh",
@@ -343,17 +368,31 @@ export function Layout({ children }: LayoutProps) {
             >
               <MenuIcon />
             </IconButton>
-            <Breadcrumbs separator={<ChevronRightIcon fontSize="small" />} sx={{ flex: 1 }}>
+            <Breadcrumbs
+              separator={<ChevronRightIcon fontSize="small" />}
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                overflow: "hidden",
+                "& ol": { flexWrap: "nowrap", minWidth: 0 },
+                "& li": { minWidth: 0, overflow: "hidden" },
+                "& li:last-child": { minWidth: 0 },
+              }}
+            >
               {crumbs.map((c, i) => (
                 <Typography
                   key={c.path}
                   variant="body2"
                   component={i < crumbs.length - 1 ? Link : "span"}
                   to={c.path}
+                  noWrap
                   sx={{
+                    display: "block",
+                    minWidth: 0,
                     color: i < crumbs.length - 1 ? "text.secondary" : "text.primary",
                     textDecoration: "none",
                     fontWeight: i === crumbs.length - 1 ? 600 : 400,
+                    flexShrink: i < crumbs.length - 1 ? 0 : 1,
                     "&:hover": i < crumbs.length - 1 ? { textDecoration: "underline" } : {},
                   }}
                 >
@@ -406,7 +445,7 @@ export function Layout({ children }: LayoutProps) {
             </Menu>
           </Toolbar>
         </AppBar>
-        <Box sx={{ flex: 1, p: { xs: 2, md: 3 }, backgroundColor: "background.default" }}>
+        <Box sx={{ flex: 1, minWidth: 0, p: { xs: 2, md: 3 }, backgroundColor: "background.default" }}>
           {user?.verificationStatus === "PENDING" && (
             <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
               Your profile is under review. Some features may be limited until you are verified.{" "}

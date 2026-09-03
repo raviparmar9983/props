@@ -143,7 +143,79 @@ export default function ProjectsList() {
           />
         </Card>
       ) : (
-        <Card>
+        <>
+        {/* Mobile: card list (a 7-column table has no comfortable phone width) */}
+        <Box sx={{ display: { xs: "flex", md: "none" }, flexDirection: "column", gap: 1.5 }}>
+          {projects.map((project) => {
+            const thumb = project.media?.find((m) => m.isPrimary) ?? project.media?.[0];
+            return (
+              <Card
+                key={project.id}
+                sx={{ p: 2, cursor: "pointer" }}
+                onClick={() => navigate(`/projects/${project.id}`)}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  {thumb ? (
+                    <Box
+                      component="img"
+                      src={thumb.url}
+                      alt=""
+                      sx={{ width: 48, height: 40, objectFit: "cover", borderRadius: 1, flexShrink: 0, bgcolor: "#EBF0F7" }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        width: 48,
+                        height: 40,
+                        borderRadius: 1,
+                        flexShrink: 0,
+                        bgcolor: "#EBF0F7",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#1B2A4A",
+                      }}
+                    >
+                      <FolderOffIcon sx={{ fontSize: 18 }} />
+                    </Box>
+                  )}
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="body2" fontWeight={600} noWrap>
+                      {project.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {project.city?.name ?? "—"} &middot; {relativeTime(project.updatedAt)}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMenuOpen(e, project.id);
+                    }}
+                  >
+                    <MoreVertIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1.5 }}>
+                  <StatusBadge status={project.status} />
+                  <StatusBadge status={project.reviewStatus ?? "DRAFT"} />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ alignSelf: "center", ml: 0.5 }}
+                  >
+                    {project._count?.unitTypes ?? 0} unit type
+                    {project._count?.unitTypes === 1 ? "" : "s"}
+                  </Typography>
+                </Box>
+              </Card>
+            );
+          })}
+        </Box>
+
+        {/* Desktop: full table */}
+        <Card sx={{ display: { xs: "none", md: "block" } }}>
           <TableContainer sx={{ overflowX: "auto" }}>
             <Table>
               <TableHead>
@@ -231,6 +303,7 @@ export default function ProjectsList() {
             </Table>
           </TableContainer>
         </Card>
+        </>
       )}
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleMenuClose}>
