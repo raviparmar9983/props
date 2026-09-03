@@ -7,7 +7,7 @@ export function BuilderCta() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 pt-10">
-      {/* <div className="relative overflow-hidden rounded-card bg-ink-blue p-6 text-white md:p-10">
+      <div className="relative overflow-hidden rounded-card-xl bg-ink-blue p-6 text-white md:p-10">
         <span className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-accent/25 blur-2xl" />
         <span className="pointer-events-none absolute -bottom-10 -left-6 h-40 w-40 rounded-full bg-accent/15 blur-2xl" />
         <div className="relative flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
@@ -34,8 +34,8 @@ export function BuilderCta() {
             List your project
             <ArrowRight size={16} aria-hidden />
           </Link>
-        </div> */}
-      {/* </div> */}
+        </div>
+      </div>
     </section>
   );
 }

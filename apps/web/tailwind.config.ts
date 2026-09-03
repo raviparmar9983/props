@@ -55,6 +55,7 @@ const config: Config = {
         "card-xl": "24px",
         pill: "999px",
         image: "16px",
+        "image-hover": "20px",
         "image-xl": "20px",
         input: "10px",
       },
@@ -63,6 +64,10 @@ const config: Config = {
         "card-hover": "0 8px 24px rgba(27, 42, 74, 0.14)",
         "sticky-bar": "0 -4px 16px rgba(27, 42, 74, 0.10)",
         "accent-button": "0 4px 14px rgba(184, 137, 79, 0.32)",
+        "card-focus": "0 8px 24px rgba(27, 42, 74, 0.14), 0 0 0 3px rgba(184, 137, 79, 0.35)",
+      },
+      backgroundImage: {
+        "hero-gradient": "linear-gradient(135deg, #1B2A4A 0%, #16213A 45%, #2F5D8A 100%)",
       },
     },
   },

@@ -103,7 +103,7 @@ export function CompareDropdown({ currentSlug, className }: CompareDropdownProps
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-80 overflow-hidden rounded-card border border-slate-200 bg-surface shadow-card-hover">
+        <div className="absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-slate-200 bg-surface shadow-card-hover">
           {/* Search input */}
           <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
             <Search size={14} className="shrink-0 text-slate-400" />

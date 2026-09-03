@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CircleCheck, House } from "lucide-react";
+import { Building2, CircleCheck, House, LandPlot, Store } from "lucide-react";
 import { searchProjects, getCities, getPublicStats, getBuilders, getBuilderBySlug } from "../lib/api";
 import { ProjectCard } from "../components/project-card";
 import { CollapsingSearchBar } from "../components/collapsing-search-bar";
@@ -167,51 +167,52 @@ export default async function HomePage() {
       <CollapsingSearchBar cities={cities} location={location} />
 
       {/* B2 — Hero */}
-      <section className="bg-ink-blue px-4 pt-8 pb-12 text-center md:pt-12">
-        <div className="mx-auto max-w-3xl">
-          <h1 className="font-display text-2xl font-bold leading-tight text-white md:text-4xl">
+      <section className="relative overflow-hidden bg-hero-gradient px-4 pt-10 pb-14 text-center md:pt-16 md:pb-20">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-accent/20 blur-3xl"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-blueprint/25 blur-3xl"
+        />
+        <div className="relative mx-auto max-w-3xl">
+          <p className="animate-fade-rise inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-3 py-1.5 text-xs font-semibold tracking-wide text-white/85 backdrop-blur">
+            <CircleCheck size={13} strokeWidth={2.5} className="text-accent" aria-hidden />
+            100% verified builders, zero brokerage
+          </p>
+          <h1 className="animate-fade-rise mt-4 font-display text-2xl font-bold leading-tight text-white md:text-4xl" style={{ animationDelay: "40ms" }}>
             Every property here is from a{" "}
             <span className="text-accent">verified builder</span>
           </h1>
-          {/* <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/70 md:text-base">
+          <p
+            className="animate-fade-rise mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/70 md:text-base"
+            style={{ animationDelay: "80ms" }}
+          >
             Flats, houses and plots with transparent pricing — talk to the
             builder directly, with no brokers in between.
-          </p> */}
-            {/* <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-              {["No brokers", "Verified builders", "Direct from source"].map(
-                (t) => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-3 py-1.5 text-xs font-medium text-white/85"
-                  >
-                    <CircleCheck
-                      size={12}
-                      strokeWidth={2.5}
-                      className="text-accent"
-                      aria-hidden
-                    />
-                    {t}
-                  </span>
-                ),
-              )}
-            </div>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-              {[
-                { value: "FLAT", label: "Flats" },
-                { value: "HOUSE", label: "Houses" },
-                { value: "PLOT", label: "Plots" },
-                { value: "SHOP", label: "Shops" },
-              ].map((t) => (
-                <Link
-                  key={t.value}
-                  href={`/search?propertyType=${t.value}`}
-                  className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur transition-colors hover:bg-accent hover:text-white active:scale-95"
-                >
-                  <House size={14} aria-hidden />
-                  {t.label}
-                </Link>
-              ))}
-            </div> */}
+          </p>
+
+          <div
+            className="animate-fade-rise mt-6 flex flex-wrap items-center justify-center gap-2"
+            style={{ animationDelay: "120ms" }}
+          >
+            {[
+              { value: "FLAT", label: "Flats", Icon: Building2 },
+              { value: "HOUSE", label: "Houses", Icon: House },
+              { value: "PLOT", label: "Plots", Icon: LandPlot },
+              { value: "SHOP", label: "Shops", Icon: Store },
+            ].map((t) => (
+              <Link
+                key={t.value}
+                href={`/search?propertyType=${t.value}`}
+                className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur transition-colors hover:bg-accent hover:text-white active:scale-95"
+              >
+                <t.Icon size={14} aria-hidden />
+                {t.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

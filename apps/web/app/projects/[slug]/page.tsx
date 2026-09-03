@@ -11,8 +11,7 @@ import { ProjectCard } from "../../../components/project-card";
 import { ExpressInterest } from "../../../features/leads/express-interest";
 import { ReadMore } from "../../../components/read-more";
 import { FloorPlans } from "../../../components/floor-plans";
-// Google Maps embed temporarily disabled
-// import { ProjectMap } from "../../../components/project-map";
+import { ProjectMap } from "../../../components/project-map";
 import { ContactList } from "../../../components/contact-list";
 import { TrustLegal } from "../../../components/trust-legal";
 import { PriceAndEmi } from "../../../components/price-and-emi";
@@ -608,7 +607,6 @@ export default async function ProjectPage({ params }: PageProps) {
                   </div>
                 </div>
               </div>
-              {/* Google Maps embed — temporarily disabled
               {project.latitude && project.longitude && (
                 <ProjectMap
                   latitude={project.latitude}
@@ -616,7 +614,6 @@ export default async function ProjectPage({ params }: PageProps) {
                   title={project.title}
                 />
               )}
-              */}
 
               {/* B5 — Nearby landmarks grouped under the map */}
               <NearbyLandmarks items={project.landmarks ?? []} />

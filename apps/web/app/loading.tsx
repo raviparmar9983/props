@@ -6,10 +6,11 @@ export default function Loading() {
       <div className="mx-auto max-w-6xl px-4 pt-4">
         <div className="h-14 w-full rounded-pill bg-slate-100" />
       </div>
-      <div className="bg-ink-blue px-4 pt-8 pb-12 text-center">
-        <div className="mx-auto h-8 w-2/3 max-w-md rounded-lg bg-white/10" />
-        <div className="mx-auto mt-4 h-3 w-1/2 max-w-xs rounded-lg bg-white/10" />
-        <div className="mx-auto mt-5 h-9 w-64 rounded-pill bg-white/10" />
+      <div className="bg-hero-gradient px-4 pt-10 pb-14 text-center md:pt-16 md:pb-20">
+        <div className="mx-auto h-6 w-56 rounded-pill bg-white/10" />
+        <div className="mx-auto mt-4 h-8 w-2/3 max-w-md rounded-lg bg-white/10" />
+        <div className="mx-auto mt-3 h-3 w-1/2 max-w-xs rounded-lg bg-white/10" />
+        <div className="mx-auto mt-6 h-9 w-72 rounded-pill bg-white/10" />
       </div>
       <div className="mx-auto max-w-6xl px-4 pt-8">
         <div className="flex gap-3 overflow-hidden">

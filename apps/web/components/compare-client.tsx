@@ -402,23 +402,25 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
 
       {/* Sections */}
       <div className="mx-auto hidden max-w-6xl px-4 md:block">
-        <table className="w-full min-w-[500px]">
-          <tbody>
-            {sections.map((section) => {
-              const expanded = expandedSections[section.key] !== false;
-              return (
-                <CompareSection
-                  key={section.key}
-                  label={SECTION_LABELS[section.key] ?? section.key}
-                  rows={section.rows}
-                  colCount={count}
-                  expanded={expanded}
-                  onToggle={() => toggle(section.key)}
-                />
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[500px]">
+            <tbody>
+              {sections.map((section) => {
+                const expanded = expandedSections[section.key] !== false;
+                return (
+                  <CompareSection
+                    key={section.key}
+                    label={SECTION_LABELS[section.key] ?? section.key}
+                    rows={section.rows}
+                    colCount={count}
+                    expanded={expanded}
+                    onToggle={() => toggle(section.key)}
+                  />
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

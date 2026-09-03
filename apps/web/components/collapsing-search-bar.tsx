@@ -78,7 +78,7 @@ export function CollapsingSearchBar({
         <div className="mx-auto max-w-6xl px-4">
           <form
             onSubmit={submit}
-            className={`flex items-center gap-1 rounded-pill bg-surface shadow-card transition-all duration-[var(--duration-base)] ${
+            className={`flex items-center gap-1 rounded-pill bg-surface shadow-card transition-all duration-[var(--duration-base)] focus-within:shadow-card-focus ${
               collapsed ? "h-12" : "h-14"
             }`}
           >
