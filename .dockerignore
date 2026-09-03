@@ -1,0 +1,34 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies & build output (installed/built inside the image)
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+.pnpm-store
+**/tsconfig.tsbuildinfo
+
+# Env & secrets (never bake these into an image)
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Editor / agent tooling (not part of the application)
+.claude
+.agents
+.windsurf
+**/.claude
+**/.agents
+**/.windsurf
+**/skills-lock.json
+
+# Local dev artifacts
+**/*.log
+apps/api/dev.db
+apps/api/uploads
+
+# Misc
+*.md
+!README.md

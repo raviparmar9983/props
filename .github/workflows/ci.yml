@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same branch/PR.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Install, typecheck, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the pinned version from the root package.json's
+      # "packageManager" field (pnpm@9.15.4), so this stays in sync
+      # automatically if that's ever bumped.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # No live Postgres service is used here: `prisma generate`/`validate`
+      # only read the schema file, they don't need a DB connection, and
+      # neither does any app's typecheck/build step.
+      - name: Validate Prisma schema
+        run: pnpm --filter verifiedprops-api exec prisma validate
+
+      - name: Typecheck & build (all apps)
+        run: pnpm exec turbo run typecheck build
+
+      # Lint is informational only for now: eslint itself isn't installed in
+      # any app (and there's no eslint config anywhere in the repo yet), so
+      # `pnpm run lint` currently fails on every package regardless of what
+      # changed. Wiring up a real lint setup is a separate follow-up; until
+      # then this step is allowed to fail without blocking CI.
+      - name: Lint (non-blocking until eslint is set up)
+        continue-on-error: true
+        run: pnpm exec turbo run lint

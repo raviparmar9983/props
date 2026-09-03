@@ -35,9 +35,13 @@ async function bootstrap(): Promise<void> {
     process.env.CORS_ORIGIN_BUILDER ?? 'http://localhost:5173',
     process.env.CORS_ORIGIN_ADMIN ?? 'http://localhost:5174',
     process.env.CORS_ORIGIN_PUBLIC ?? 'http://localhost:3000',
-    'http://10.123.173.113:3000'
   ];
   app.enableCors({ origin: origins, credentials: true });
+
+  // Let Nest catch SIGTERM/SIGINT (sent by `docker stop`) and run each
+  // module's onModuleDestroy/beforeApplicationShutdown hooks (e.g. Prisma's
+  // $disconnect) before the process exits, instead of being killed mid-request.
+  app.enableShutdownHooks();
 
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
