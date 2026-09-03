@@ -28,6 +28,7 @@ import { ConstructionUpdatesModule } from './features/construction-updates/const
 import { SpecificationsModule } from './features/specifications/specifications.module';
 import { FaqsModule } from './features/faqs/faqs.module';
 import { SiteVisitsModule } from './features/site-visits/site-visits.module';
+import { ProjectHighlightsModule } from './features/project-highlights/project-highlights.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -63,6 +64,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     SpecificationsModule,
     FaqsModule,
     SiteVisitsModule,
+    ProjectHighlightsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

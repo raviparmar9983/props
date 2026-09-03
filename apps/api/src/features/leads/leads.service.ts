@@ -102,7 +102,7 @@ export class LeadsService {
     const [leads, total] = await Promise.all([
       this.prisma.lead.findMany({
         where,
-        include: { project: true, unitType: true, customer: { select: { id: true, email: true } } },
+        include: { project: true, unitType: true, customer: { select: { id: true, email: true } }, assignedContact: true },
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -119,7 +119,7 @@ export class LeadsService {
 
     const lead = await this.prisma.lead.findFirst({
       where: { id: leadId, builderId: profile.id },
-      include: { project: true, unitType: true, customer: { select: { id: true, email: true } } },
+      include: { project: true, unitType: true, customer: { select: { id: true, email: true } }, assignedContact: true },
     });
     if (!lead) throw new NotFoundException('Lead not found');
     return lead;
@@ -138,5 +138,24 @@ export class LeadsService {
     }
 
     return this.prisma.lead.update({ where: { id: leadId }, data });
+  }
+
+  async assignContact(builderUserId: string, leadId: string, contactId: string | null) {
+    const profile = await this.prisma.builderProfile.findUnique({ where: { userId: builderUserId } });
+    if (!profile) throw new NotFoundException('Builder profile not found');
+
+    const lead = await this.prisma.lead.findFirst({ where: { id: leadId, builderId: profile.id } });
+    if (!lead) throw new NotFoundException('Lead not found');
+
+    if (contactId) {
+      const contact = await this.prisma.contact.findFirst({ where: { id: contactId, builderId: profile.id } });
+      if (!contact) throw new NotFoundException('Contact not found for this builder');
+    }
+
+    return this.prisma.lead.update({
+      where: { id: leadId },
+      data: { assignedContactId: contactId },
+      include: { assignedContact: true },
+    });
   }
 }

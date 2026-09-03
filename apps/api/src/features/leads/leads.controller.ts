@@ -31,6 +31,13 @@ class UpdateLeadStatusDto {
   status: LeadStatus;
 }
 
+class AssignLeadDto {
+  @ApiPropertyOptional({ description: 'Id of the builder Contact handling this lead; omit/null to unassign', nullable: true })
+  @IsOptional()
+  @IsString()
+  contactId?: string | null;
+}
+
 @ApiTags('Leads')
 @Controller()
 export class LeadsController {
@@ -90,5 +97,19 @@ export class LeadsController {
     @Body() dto: UpdateLeadStatusDto,
   ) {
     return this.leadsService.updateStatus(user.sub, id, dto.status);
+  }
+
+  @Patch('leads/:id/assign')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.BUILDER)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Assign a lead to a builder contact (or unassign with contactId: null)' })
+  async assignContact(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: AssignLeadDto,
+  ) {
+    return this.leadsService.assignContact(user.sub, id, dto.contactId ?? null);
   }
 }

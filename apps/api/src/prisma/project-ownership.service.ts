@@ -78,13 +78,17 @@ export class ProjectOwnershipService {
     return this.assertProjectChildOwned(builderUserId, 'projectFAQ', id, 'FAQ');
   }
 
+  async assertHighlightOwned(builderUserId: string, id: string): Promise<string> {
+    return this.assertProjectChildOwned(builderUserId, 'projectHighlight', id, 'Highlight');
+  }
+
   async assertSiteVisitOwned(builderUserId: string, id: string): Promise<string> {
     return this.assertProjectChildOwned(builderUserId, 'siteVisitBooking', id, 'Site visit');
   }
 
   private async assertProjectChildOwned(
     builderUserId: string,
-    model: 'nearbyLandmark' | 'priceComponent' | 'paymentPlan' | 'bankPartner' | 'constructionUpdate' | 'specificationItem' | 'projectFAQ' | 'siteVisitBooking',
+    model: 'nearbyLandmark' | 'priceComponent' | 'paymentPlan' | 'bankPartner' | 'constructionUpdate' | 'specificationItem' | 'projectFAQ' | 'siteVisitBooking' | 'projectHighlight',
     id: string,
     label: string,
   ): Promise<string> {

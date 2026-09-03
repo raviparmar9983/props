@@ -105,6 +105,7 @@ export class ProjectsService {
           constructionUpdates: { orderBy: { createdAt: 'desc' } },
           specifications: { orderBy: { createdAt: 'asc' } },
           faqs: { orderBy: { createdAt: 'asc' } },
+          highlights: { orderBy: { displayOrder: 'asc' } },
           siteVisits: { orderBy: { createdAt: 'desc' } },
           builder: true,
         },

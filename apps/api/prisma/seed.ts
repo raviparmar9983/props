@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient, Prisma, ProjectVerificationStatus, ProjectReviewStatus, MediaType, SpecCategory, PaymentPlanType, LandmarkCategory } from "@prisma/client";
+import { PrismaClient, Prisma, ProjectVerificationStatus, ProjectReviewStatus, MediaType, SpecCategory, PaymentPlanType, LandmarkCategory, ParkingType, MaintenanceFrequency, LeadStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as bcrypt from "bcrypt";
 
@@ -199,26 +199,35 @@ const AMENITIES: Array<{ name: string; description: string | null; icon: string 
   // ── Society/lifestyle amenities (added) ───────────
   // Note: "Gym" already existed above historically; it is kept here once,
   // merged with its icon and official description.
-  { name: "Entrance Gate", description: "Grand entrance with safe and beautiful features", icon: "door_front" },
-  { name: "Society Meeting Room", description: "A space for residents to organize meetings and discussions", icon: "meeting_room" },
-  { name: "Pick Up & Drop Point", description: "Safe and convenient access for students", icon: "directions_bus" },
-  { name: "Entrance Plaza", description: "Stunning welcome with elegant design", icon: "location_city" },
-  { name: "Lounge & Library", description: "Library with comfy seats and cool books", icon: "local_library" },
-  { name: "Skateboarding Surface", description: "A smooth scape for gliding fun", icon: "skateboarding" },
-  { name: "Landscape Garden", description: "Elegant green environment for relaxation", icon: "yard" },
-  { name: "Plaza", description: "Open gathering space for residents", icon: "groups" },
+  // Icon keys below are reconciled against apps/web/components/amenity-icon.tsx's
+  // AMENITY_ICONS map (pool, fitness_center, emoji_people, bolt, local_parking,
+  // security, child_care, park, elevator, videocam, water_drop,
+  // local_fire_department, phone, sports_tennis, ev_station). Where a seeded
+  // amenity's original icon key had no entry in that map (and so rendered the
+  // generic Sparkles fallback), it has been remapped to the closest existing
+  // key below. A few (see PUBLIC.md-less note in the report) have no
+  // reasonable semantic match among the current icon set and are left as-is
+  // pending a web-side icon addition — flagged in the delivery report.
+  { name: "Entrance Gate", description: "Grand entrance with safe and beautiful features", icon: "security" }, // was door_front (unmapped) — gated/controlled access
+  { name: "Society Meeting Room", description: "A space for residents to organize meetings and discussions", icon: "emoji_people" }, // was meeting_room (unmapped)
+  { name: "Pick Up & Drop Point", description: "Safe and convenient access for students", icon: "directions_bus" }, // no matching web icon key — flagged for web team
+  { name: "Entrance Plaza", description: "Stunning welcome with elegant design", icon: "location_city" }, // no matching web icon key — flagged for web team
+  { name: "Lounge & Library", description: "Library with comfy seats and cool books", icon: "local_library" }, // no matching web icon key — flagged for web team
+  { name: "Skateboarding Surface", description: "A smooth scape for gliding fun", icon: "sports_tennis" }, // was skateboarding (unmapped)
+  { name: "Landscape Garden", description: "Elegant green environment for relaxation", icon: "park" }, // was yard (unmapped)
+  { name: "Plaza", description: "Open gathering space for residents", icon: "emoji_people" }, // was groups (unmapped)
   { name: "Car Parking", description: "Spacious and secure elevated vehicle parking area", icon: "local_parking" },
-  { name: "Indoor Game", description: "Play games in a specially designed indoor area", icon: "sports_esports" },
+  { name: "Indoor Game", description: "Play games in a specially designed indoor area", icon: "sports_tennis" }, // was sports_esports (unmapped)
   { name: "Badminton Court", description: "To play and practice your smash", icon: "sports_tennis" },
-  { name: "Entrance Foyer", description: "Stunning front lobby area", icon: "living" },
-  { name: "Multipurpose Hall", description: "All-purpose hall for events and functions", icon: "celebration" },
-  { name: "Dry Fountain", description: "A decorative fountain with a lot of aesthetic value", icon: "waves" },
+  { name: "Entrance Foyer", description: "Stunning front lobby area", icon: "living" }, // no matching web icon key — flagged for web team
+  { name: "Multipurpose Hall", description: "All-purpose hall for events and functions", icon: "emoji_people" }, // was celebration (unmapped)
+  { name: "Dry Fountain", description: "A decorative fountain with a lot of aesthetic value", icon: "water_drop" }, // was waves (unmapped)
   { name: "Gym", description: "State-of-the-art fitness center for daily exercises", icon: "fitness_center" },
-  { name: "Children Play Area", description: "Safe and leisure area for children", icon: "toys" },
-  { name: "Veranda With Swings", description: "Relaxing sit-out with gentle swings", icon: "deck" },
+  { name: "Children Play Area", description: "Safe and leisure area for children", icon: "child_care" }, // was toys (unmapped)
+  { name: "Veranda With Swings", description: "Relaxing sit-out with gentle swings", icon: "park" }, // was deck (unmapped)
   { name: "Security With CCTV", description: "Advanced monitoring security 24/7", icon: "security" },
-  { name: "Common DTH", description: "Shared satellite dish access for everyone", icon: "satellite_alt" },
-  { name: "Generator For Common Areas", description: "Generator for uninterrupted common services", icon: "electrical_services" },
+  { name: "Common DTH", description: "Shared satellite dish access for everyone", icon: "satellite_alt" }, // no matching web icon key — flagged for web team
+  { name: "Generator For Common Areas", description: "Generator for uninterrupted common services", icon: "bolt" }, // was electrical_services (unmapped)
 ];
 
 const BUILDER_COMPANIES = [
@@ -352,6 +361,29 @@ const FAQ_PAIRS: Array<{ question: string; answer: string }> = [
   { question: "What is the maintenance charge?", answer: "Maintenance charges will be communicated closer to possession. It typically covers common area maintenance, security, lifts, and garden upkeep." },
 ];
 
+const HIGHLIGHT_POOL = [
+  "RERA registered project",
+  "Zero brokerage — connect directly with the builder",
+  "Gated community with round-the-clock security",
+  "Vastu-compliant layouts",
+  "Landscaped gardens and modern clubhouse",
+  "Easy home loan approval from leading banks",
+  "Excellent connectivity to schools, hospitals and business hubs",
+  "Spacious configurations designed for modern families",
+  "Earthquake-resistant RCC framed structure",
+  "Ample covered parking for every unit",
+];
+
+const CUSTOMER_NAMES = ["Rahul Verma", "Pooja Nair", "Sanjay Bhatia", "Meera Krishnan", "Arvind Rao"];
+
+const LEAD_MESSAGES = [
+  "Interested in a 2 BHK. Please share the price list and floor plans.",
+  "Can I get a call back regarding site visit availability this weekend?",
+  "Looking for ready-to-move options in this project. What's the best price?",
+  "Please share loan/EMI details and the payment plan for this project.",
+  "Would like more details on the amenities and possession timeline.",
+];
+
 const BANK_NAMES = [
   "HDFC Bank", "ICICI Bank", "SBI", "Axis Bank", "Kotak Mahindra Bank",
   "PNB Bank", "Bank of Baroda", "Citibank", "Standard Chartered", "Yes Bank",
@@ -387,6 +419,8 @@ interface UnitDef {
   areaUnit: "SQFT" | "SQM";
   price: number;
   priceUnit: "LAKH" | "CRORE" | "TOTAL";
+  parkingCount: number | null;
+  parkingType: ParkingType | null;
   totalCount: number;
   availableCount: number;
   attributes: Prisma.InputJsonValue;
@@ -428,6 +462,8 @@ function buildResidentialUnits(): UnitDef[] {
       areaUnit: "SQFT" as const,
       price,
       priceUnit: "TOTAL" as const,
+      parkingCount: c.bedrooms <= 2 ? 1 : 2,
+      parkingType: pick(["COVERED", "COVERED", "STILT", "OPEN"] as const),
       totalCount: total,
       availableCount: randInt(2, total),
       attributes: { furnishing, view: pick(["Garden", "City", "Pool", "Courtyard"]) },
@@ -456,6 +492,8 @@ function buildVillaUnits(): UnitDef[] {
       areaUnit: "SQFT" as const,
       price,
       priceUnit: "TOTAL" as const,
+      parkingCount: randInt(2, 3),
+      parkingType: "COVERED" as const,
       totalCount: total,
       availableCount: randInt(1, total),
       attributes: { furnishing: pick(["Unfurnished", "Semi-Furnished"]), plotArea: randInt(2000, 5000) },
@@ -483,6 +521,9 @@ function buildPlotUnits(): UnitDef[] {
       areaUnit: "SQFT" as const,
       price,
       priceUnit: "TOTAL" as const,
+      // Plots are sold as bare land — no built parking allotment applies.
+      parkingCount: null,
+      parkingType: null,
       totalCount: total,
       availableCount: randInt(5, total),
       attributes: { plotType: c.label, facing: pick(["North", "South", "East", "West"]) },
@@ -510,6 +551,8 @@ function buildCommercialUnits(): UnitDef[] {
       areaUnit: "SQFT" as const,
       price,
       priceUnit: "TOTAL" as const,
+      parkingCount: randInt(1, 3),
+      parkingType: pick(["OPEN", "OPEN", "BASEMENT"] as const),
       totalCount: total,
       availableCount: randInt(2, total),
       attributes: { frontage: `${randInt(10, 40)} ft`, floor: pick(["Ground", "1st", "2nd", "3rd"]) },
@@ -630,6 +673,24 @@ async function main() {
   }
   console.log(`Builders: ${builders.length}`);
 
+  // 4b. Customer accounts (used to seed sample leads below)
+  const customers: Array<{ id: string; email: string }> = [];
+  for (let i = 0; i < CUSTOMER_NAMES.length; i++) {
+    const email = `customer${i + 1}@example.com`;
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: {
+        email,
+        passwordHash: adminHash,
+        role: "CUSTOMER",
+        isEmailVerified: true,
+      },
+    });
+    customers.push({ id: user.id, email: user.email });
+  }
+  console.log(`Customers: ${customers.length}`);
+
   // 5. Projects (100 across random cities) with towers, unit types, media,
   //    amenities and contacts.
   const projectIds: string[] = [];
@@ -645,6 +706,8 @@ async function main() {
   const constructionUpdateRows: Array<{ projectId: string; title: string; description: string; photoUrl: string; updateDate: Date; progressPercent: number }> = [];
   const specificationRows: Array<{ projectId: string; category: SpecCategory; label: string; value: string }> = [];
   const faqRows: Array<{ projectId: string; question: string; answer: string; displayOrder: number }> = [];
+  const highlightRows: Array<{ projectId: string; text: string; displayOrder: number }> = [];
+  const projectBuilderId = new Map<string, string>();
 
   const now = new Date();
   const TOTAL_PROJECTS = 100;
@@ -662,6 +725,9 @@ async function main() {
     const units = buildUnits(category);
     const unitTypeCount = units.length;
     const priceStartingFrom = Math.min(...units.map((u) => u.price));
+    // Maintenance is conventionally billed per sqft of the largest carpet area on offer.
+    const maintenanceRatePerSqft = randInt(2, 5);
+    const maintenanceAmount = category === "plot" ? null : maintenanceRatePerSqft * Math.max(...units.map((u) => u.carpetArea));
     const amenities = shuffle(allAmenityIds).slice(0, randInt(4, 8));
     const amenityNames = amenities.map((id) => [...amenityIdByName].find(([, v]) => v === id)?.[0] ?? "").filter(Boolean);
 
@@ -711,6 +777,8 @@ async function main() {
       hasGatedEntry: rng() < 0.75,
       petPolicy: pick(PET_POLICIES),
       allowsSiteVisitBooking: true,
+      maintenanceAmount,
+      maintenanceFrequency: category === "plot" ? null : pick(["MONTHLY", "MONTHLY", "QUARTERLY"] as const),
       isFeatured,
       verificationStatus: ProjectVerificationStatus.APPROVED,
       reviewStatus: ProjectReviewStatus.APPROVED,
@@ -727,6 +795,7 @@ async function main() {
       update: projectData,
     });
     projectIds.push(project.id);
+    projectBuilderId.set(project.id, builder.id);
 
     // Towers
     const towerCount = category === "residential" ? randInt(1, 4) : category === "commercial" ? randInt(1, 2) : 0;
@@ -759,18 +828,19 @@ async function main() {
         projectId: project.id,
         type: "IMAGE",
         url: `${IMAGE_BASE}/${slug}-${m}/900/700`,
+        caption: m === 0 ? `${title} — exterior view` : `${title} — photograph ${m + 1}`,
         displayOrder: m,
         isPrimary: m === 0,
       });
     }
     let order = imageCount;
-    mediaRows.push({ projectId: project.id, type: "VIDEO", url: pick(VIDEO_URLS), displayOrder: order++, isPrimary: false });
-    mediaRows.push({ projectId: project.id, type: "FLOOR_PLAN", url: `${IMAGE_BASE}/${slug}-fp1/800/1000`, displayOrder: order++, isPrimary: false });
+    mediaRows.push({ projectId: project.id, type: "VIDEO", url: pick(VIDEO_URLS), caption: `${title} — video walkthrough`, displayOrder: order++, isPrimary: false });
+    mediaRows.push({ projectId: project.id, type: "FLOOR_PLAN", url: `${IMAGE_BASE}/${slug}-fp1/800/1000`, caption: `${title} — floor plan`, displayOrder: order++, isPrimary: false });
     if (rng() < 0.6) {
-      mediaRows.push({ projectId: project.id, type: "FLOOR_PLAN", url: `${IMAGE_BASE}/${slug}-fp2/800/1000`, displayOrder: order++, isPrimary: false });
+      mediaRows.push({ projectId: project.id, type: "FLOOR_PLAN", url: `${IMAGE_BASE}/${slug}-fp2/800/1000`, caption: `${title} — floor plan (alternate layout)`, displayOrder: order++, isPrimary: false });
     }
-    mediaRows.push({ projectId: project.id, type: "MASTER_PLAN", url: `${IMAGE_BASE}/${slug}-mp/1000/700`, displayOrder: order++, isPrimary: false });
-    mediaRows.push({ projectId: project.id, type: "BROCHURE", url: BROCHURE_URL, displayOrder: order++, isPrimary: false });
+    mediaRows.push({ projectId: project.id, type: "MASTER_PLAN", url: `${IMAGE_BASE}/${slug}-mp/1000/700`, caption: `${title} — master site plan`, displayOrder: order++, isPrimary: false });
+    mediaRows.push({ projectId: project.id, type: "BROCHURE", url: BROCHURE_URL, caption: null, displayOrder: order++, isPrimary: false });
 
     // Amenities
     for (const amenityId of amenities) {
@@ -927,6 +997,16 @@ async function main() {
         displayOrder: fq,
       });
     }
+
+    // Highlights (3-5 per project) — short USP bullets for prominent display
+    const chosenHighlights = shuffle(HIGHLIGHT_POOL).slice(0, randInt(3, 5));
+    for (let hl = 0; hl < chosenHighlights.length; hl++) {
+      highlightRows.push({
+        projectId: project.id,
+        text: chosenHighlights[hl]!,
+        displayOrder: hl,
+      });
+    }
   }
 
   console.log(`Projects upserted: ${projectIds.length}`);
@@ -934,6 +1014,7 @@ async function main() {
   // Rebuild children idempotently: delete rows owned by the seeded projects,
   // then recreate everything. Done in a transaction.
   const deleteOps = [
+    prisma.lead.deleteMany({ where: { projectId: { in: projectIds } } }),
     prisma.projectAmenity.deleteMany({ where: { projectId: { in: projectIds } } }),
     prisma.contact.deleteMany({ where: { projectId: { in: projectIds } } }),
     prisma.projectMedia.deleteMany({ where: { projectId: { in: projectIds } } }),
@@ -944,6 +1025,7 @@ async function main() {
     prisma.constructionUpdate.deleteMany({ where: { projectId: { in: projectIds } } }),
     prisma.specificationItem.deleteMany({ where: { projectId: { in: projectIds } } }),
     prisma.projectFAQ.deleteMany({ where: { projectId: { in: projectIds } } }),
+    prisma.projectHighlight.deleteMany({ where: { projectId: { in: projectIds } } }),
     prisma.unitType.deleteMany({ where: { projectId: { in: projectIds } } }),
     prisma.tower.deleteMany({ where: { projectId: { in: projectIds } } }),
   ];
@@ -976,7 +1058,53 @@ async function main() {
     prisma.constructionUpdate.createMany({ data: constructionUpdateRows }),
     prisma.specificationItem.createMany({ data: specificationRows }),
     prisma.projectFAQ.createMany({ data: faqRows }),
+    prisma.projectHighlight.createMany({ data: highlightRows }),
   ]);
+
+  // Leads reference Contact rows created via createMany above (which does not
+  // return ids), so the primary contact per project is looked up afterward to
+  // demonstrate Lead.assignedContactId with representative data.
+  const primaryContacts = await prisma.contact.findMany({
+    where: { projectId: { in: projectIds }, isPrimary: true },
+    select: { id: true, projectId: true },
+  });
+  const primaryContactByProject = new Map(
+    primaryContacts.filter((c) => c.projectId).map((c) => [c.projectId as string, c.id]),
+  );
+
+  const leadRows: Array<{
+    projectId: string;
+    builderId: string;
+    customerId: string;
+    message: string;
+    status: LeadStatus;
+    contactedAt: Date | null;
+    assignedContactId: string | null;
+  }> = [];
+  for (const projectId of projectIds) {
+    if (rng() >= 0.3) continue; // ~30% of projects have at least one sample lead
+    const builderId = projectBuilderId.get(projectId);
+    if (!builderId) continue;
+    const leadCount = randInt(1, 2);
+    for (let l = 0; l < leadCount; l++) {
+      const status = pick(["NEW", "NEW", "CONTACTED", "IN_PROGRESS"] as const);
+      const isContacted = status !== "NEW";
+      leadRows.push({
+        projectId,
+        builderId,
+        customerId: pick(customers).id,
+        message: pick(LEAD_MESSAGES),
+        status,
+        contactedAt: isContacted ? new Date(now.getTime() - randInt(1, 10) * 86400000) : null,
+        // Only contacted/in-progress leads are assigned to a builder-side
+        // contact in this sample data; brand-new leads sit unassigned.
+        assignedContactId: isContacted && rng() < 0.6 ? primaryContactByProject.get(projectId) ?? null : null,
+      });
+    }
+  }
+  if (leadRows.length > 0) {
+    await prisma.lead.createMany({ data: leadRows });
+  }
 
   const summary = await Promise.all([
     prisma.project.count(),
@@ -992,6 +1120,8 @@ async function main() {
     prisma.constructionUpdate.count(),
     prisma.specificationItem.count(),
     prisma.projectFAQ.count(),
+    prisma.projectHighlight.count(),
+    prisma.lead.count(),
   ]);
 
   console.log("Seeding complete!");
@@ -1001,6 +1131,7 @@ async function main() {
   console.log(
     `NearbyLandmarks: ${summary[6]} | PriceComponents: ${summary[7]} | PaymentPlans: ${summary[8]} | BankPartners: ${summary[9]} | ConstructionUpdates: ${summary[10]} | Specifications: ${summary[11]} | FAQs: ${summary[12]}`,
   );
+  console.log(`Highlights: ${summary[13]} | Leads: ${summary[14]}`);
 }
 
 main()
