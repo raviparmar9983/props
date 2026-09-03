@@ -696,7 +696,7 @@ async function main() {
   const projectIds: string[] = [];
   const towerRows: Array<{ refKey: string; projectId: string; name: string; totalFloors: number }> = [];
   const unitTypeDefs: Array<UnitDef & { projectId: string; towerRefKey: string | null }> = [];
-  const mediaRows: Array<{ projectId: string; type: MediaType; url: string; displayOrder: number; isPrimary: boolean }> = [];
+  const mediaRows: Array<{ projectId: string; type: MediaType; url: string; caption: string | null; displayOrder: number; isPrimary: boolean }> = [];
   const amenityRows: Array<{ projectId: string; amenityId: number }> = [];
   const contactRows: Array<{ builderId: string; projectId: string; name: string; designation: string; phone: string; email: string; isPrimary: boolean }> = [];
   const nearbyLandmarkRows: Array<{ projectId: string; category: LandmarkCategory; name: string; distanceKm: number; travelTimeMinutes: number | null }> = [];

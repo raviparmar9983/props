@@ -29,7 +29,7 @@ export function FloorPlans({ media }: FloorPlansProps) {
         Floor plans & brochures
       </h2>
 
-      <div className="mt-3 flex items-start gap-4">
+      <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
         {plans.length > 0 && (
           <div className="no-scrollbar -mx-4 flex flex-1 gap-3 overflow-x-auto px-4 sm:mx-0 sm:px-0">
             {plans.map((plan, i) => (
@@ -60,7 +60,7 @@ export function FloorPlans({ media }: FloorPlansProps) {
             href={brochureUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-accent px-5 py-3 text-sm font-semibold text-white shadow-accent-button transition-colors hover:bg-accent-dark active:scale-[0.98]"
+            className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-pill bg-accent px-5 py-3 text-sm font-semibold text-white shadow-accent-button transition-colors hover:bg-accent-dark active:scale-[0.98] sm:w-auto"
           >
             <Download size={16} aria-hidden />
             Download brochure

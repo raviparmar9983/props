@@ -24,7 +24,7 @@ export function BottomTabBar() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[var(--shadow-sticky-bar)] backdrop-blur-xl md:hidden"
       aria-label="Bottom navigation"
     >
-      <div className="mx-auto grid max-w-md grid-cols-4">
+      <div className="mx-auto grid max-w-md grid-cols-3">
         {TABS.map((tab) => {
           const active = isActive(pathname, tab.href);
           return (

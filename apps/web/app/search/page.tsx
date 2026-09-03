@@ -680,8 +680,8 @@ function SearchPageInner() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 pt-4">
-        <div className="flex items-center justify-between">
-          <h1 className="font-display text-xl font-semibold text-slate-900 md:text-2xl">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="min-w-0 truncate font-display text-xl font-semibold text-slate-900 md:text-2xl">
             {q
               ? `Results for "${q}"`
               : city
@@ -689,7 +689,7 @@ function SearchPageInner() {
                 : "All projects"}
           </h1>
           {!showSkeleton && (
-            <p className="text-sm text-slate-400">
+            <p className="shrink-0 text-sm text-slate-400">
               {total} result{total !== 1 ? "s" : ""}
             </p>
           )}

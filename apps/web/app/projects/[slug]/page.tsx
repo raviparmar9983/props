@@ -439,7 +439,7 @@ export default async function ProjectPage({ params }: PageProps) {
             <span className="truncate text-slate-600">{project.title}</span>
           </nav>
 
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <h1 className="font-display text-[26px] font-bold leading-tight text-slate-900 md:text-[32px]">
                 {project.title}
@@ -462,7 +462,7 @@ export default async function ProjectPage({ params }: PageProps) {
                 </p>
               )}
             </div>
-            <div className="relative flex shrink-0 items-center gap-2">
+            <div className="relative flex shrink-0 items-center gap-2 self-start">
               <CompareDropdown currentSlug={project.slug} />
               <CompareToggle slug={project.slug} />
             </div>

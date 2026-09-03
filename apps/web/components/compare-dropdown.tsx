@@ -11,9 +11,13 @@ import { GitCompareArrows, Search, MapPin, X } from "lucide-react";
 interface CompareDropdownProps {
   currentSlug?: string;
   className?: string;
+  /** Icon-only trigger with no label — for tight spaces like the floating compare bar. */
+  compact?: boolean;
+  /** Open the results panel above the trigger instead of below — for triggers pinned near the bottom of the screen. */
+  openUp?: boolean;
 }
 
-export function CompareDropdown({ currentSlug, className }: CompareDropdownProps) {
+export function CompareDropdown({ currentSlug, className, compact, openUp }: CompareDropdownProps) {
   const router = useRouter();
   const { slugs, toggle, count } = useCompareSelection();
   const [query, setQuery] = useState("");
@@ -96,14 +100,30 @@ export function CompareDropdown({ currentSlug, className }: CompareDropdownProps
           setOpen(!open);
           setTimeout(() => inputRef.current?.focus(), 0);
         }}
-        className="inline-flex items-center gap-1.5 rounded-pill border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:border-slate-300"
+        aria-label={count >= 2 ? `Compare (${count})` : "Add a property to compare"}
+        className={
+          compact
+            ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+            : "inline-flex items-center gap-1.5 rounded-pill border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:border-slate-300"
+        }
       >
-        <GitCompareArrows size={13} />
-        {count >= 2 ? `Compare (${count})` : "Compare with..."}
+        <GitCompareArrows size={compact ? 15 : 13} />
+        {!compact && (count >= 2 ? `Compare (${count})` : "Compare with...")}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-slate-200 bg-surface shadow-card-hover">
+        <div
+          className={
+            compact
+              // Anchored to the viewport, not the small trigger button — the
+              // button can sit anywhere inside a narrow floating bar, so a
+              // button-relative panel this wide would overflow off-screen.
+              ? "fixed inset-x-3 bottom-[calc(132px+env(safe-area-inset-bottom))] z-50 overflow-hidden rounded-card border border-slate-200 bg-surface shadow-card-hover"
+              : `absolute right-0 z-50 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-slate-200 bg-surface shadow-card-hover ${
+                  openUp ? "bottom-full mb-1" : "top-full mt-1"
+                }`
+          }
+        >
           {/* Search input */}
           <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
             <Search size={14} className="shrink-0 text-slate-400" />
