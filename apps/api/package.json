@@ -28,6 +28,7 @@
     "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
+    "prisma": "^7.9.0",
     "@real-estate/constants": "workspace:*",
     "@real-estate/types": "workspace:*",
     "@real-estate/utils": "workspace:*",
@@ -53,7 +54,6 @@
     "@types/nodemailer": "^6.4.17",
     "@types/passport-jwt": "^4.0.1",
     "@types/uuid": "^10.0.0",
-    "prisma": "^7.9.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   }

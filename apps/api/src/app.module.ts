@@ -29,6 +29,7 @@ import { SpecificationsModule } from './features/specifications/specifications.m
 import { FaqsModule } from './features/faqs/faqs.module';
 import { SiteVisitsModule } from './features/site-visits/site-visits.module';
 import { ProjectHighlightsModule } from './features/project-highlights/project-highlights.module';
+import { HealthModule } from './features/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -65,6 +66,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     FaqsModule,
     SiteVisitsModule,
     ProjectHighlightsModule,
+    HealthModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

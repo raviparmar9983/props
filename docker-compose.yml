@@ -1,0 +1,162 @@
+# Local/staging orchestration for all four VerifiedProps apps. Intentionally
+# generic (no cloud-specific config) since the hosting target isn't decided
+# yet — this is meant as a portable baseline, not a production topology.
+#
+# Usage:
+#   cp .env.example .env   # then fill in real secrets
+#   docker compose up --build
+#
+# All resources are named with a "verifiedprops_" prefix so they can't be
+# confused with unrelated containers/volumes already on this host.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: verifiedprops_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-verifiedprops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-verifiedprops}
+      POSTGRES_DB: ${POSTGRES_DB:-property_platform}
+    volumes:
+      - verifiedprops_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-verifiedprops} -d $${POSTGRES_DB:-property_platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks: [verifiedprops_net]
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: verifiedprops_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: "4000"
+      # Built from the postgres service's own credentials above so the two
+      # can never drift out of sync. Overrides whatever DATABASE_URL a local
+      # apps/api/.env sets (compose only reads .env at the repo root).
+      DATABASE_URL: postgresql://${POSTGRES_USER:-verifiedprops}:${POSTGRES_PASSWORD:-verifiedprops}@postgres:5432/${POSTGRES_DB:-property_platform}?schema=public
+      CORS_ORIGIN_BUILDER: ${CORS_ORIGIN_BUILDER:-http://localhost:5173}
+      CORS_ORIGIN_ADMIN: ${CORS_ORIGIN_ADMIN:-http://localhost:5174}
+      CORS_ORIGIN_PUBLIC: ${CORS_ORIGIN_PUBLIC:-http://localhost:3000}
+      # No insecure fallback for JWT secrets: compose refuses to start rather
+      # than silently signing tokens with a placeholder value.
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env (see .env.example)}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env (see .env.example)}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
+      OTP_LENGTH: ${OTP_LENGTH:-6}
+      OTP_EXPIRY_MINUTES: ${OTP_EXPIRY_MINUTES:-5}
+      OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
+      OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-60}
+      SMTP_HOST: ${SMTP_HOST:-smtp.example.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-VerifiedProps <no-reply@example.com>}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      FILE_UPLOAD_DIR: ${FILE_UPLOAD_DIR:-./uploads}
+      FILE_UPLOAD_BASE_URL: ${FILE_UPLOAD_BASE_URL:-http://localhost:4000/uploads}
+      FILE_MAX_SIZE_MB: ${FILE_MAX_SIZE_MB:-10}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+      S3_URL_EXPIRES_IN_SECONDS: ${S3_URL_EXPIRES_IN_SECONDS:-3600}
+      THROTTLE_TTL: ${THROTTLE_TTL:-60}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-120}
+      ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL:-admin@example.com}
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD:-ChangeMe123!}
+    volumes:
+      - verifiedprops_api_uploads:/app/uploads
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/v1/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [verifiedprops_net]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* vars are baked in at build time; rebuild this service
+        # if the value changes.
+        NEXT_PUBLIC_FILE_BASE_URL: ${NEXT_PUBLIC_FILE_BASE_URL:-http://localhost:4000/uploads}
+    container_name: verifiedprops_web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/',r=>{process.exit(r.statusCode<500?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks: [verifiedprops_net]
+
+  builder:
+    build:
+      context: .
+      dockerfile: apps/builder/Dockerfile
+    container_name: verifiedprops_builder
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5173:5173"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks: [verifiedprops_net]
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    container_name: verifiedprops_admin
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5174:5174"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5174/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks: [verifiedprops_net]
+
+networks:
+  verifiedprops_net:
+    name: verifiedprops_net
+
+volumes:
+  verifiedprops_postgres_data:
+    name: verifiedprops_postgres_data
+  verifiedprops_api_uploads:
+    name: verifiedprops_api_uploads
