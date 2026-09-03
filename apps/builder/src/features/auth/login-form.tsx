@@ -1,5 +1,4 @@
-import { Button, TextField, Box } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Button, TextField, Alert, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import { useAuthContext } from "../../lib/contexts/AuthContext";
 
@@ -25,6 +24,11 @@ export function LoginForm() {
         }
       }}
     >
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       <TextField
         required
         label="Email"
@@ -33,6 +37,8 @@ export function LoginForm() {
         onChange={(e) => setEmail(e.target.value)}
         fullWidth
         margin="normal"
+        size="small"
+        autoFocus
       />
       <TextField
         required
@@ -42,19 +48,17 @@ export function LoginForm() {
         onChange={(e) => setPassword(e.target.value)}
         fullWidth
         margin="normal"
+        size="small"
       />
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
-        <Link
-          to="/forgot-password"
-          style={{ color: "#2F5D8A", fontWeight: 500, textDecoration: "none", fontSize: "0.8rem" }}
-        >
-          Forgot password?
-        </Link>
-      </Box>
-      <Button type="submit" disabled={loading} variant="contained">
-        Sign in
+      <Button
+        type="submit"
+        disabled={loading}
+        variant="contained"
+        fullWidth
+        sx={{ mt: 3, py: 1.5, fontWeight: 600 }}
+      >
+        {loading ? <CircularProgress size={22} color="inherit" /> : "Sign in"}
       </Button>
-      {error && <p style={{ color: "#d32f2f", fontSize: "0.85rem", marginTop: 8 }}>{error}</p>}
     </form>
   );
 }

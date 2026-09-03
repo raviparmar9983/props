@@ -1,15 +1,17 @@
 import { Chip, type ChipProps } from "@mui/material";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorIcon from "@mui/icons-material/Error";
-import InfoIcon from "@mui/icons-material/Info";
-import FiberNewIcon from "@mui/icons-material/FiberNew";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import CancelIcon from "@mui/icons-material/Cancel";
-import HomeWorkIcon from "@mui/icons-material/HomeWork";
-import BuildCircleIcon from "@mui/icons-material/BuildCircle";
-import EditIcon from "@mui/icons-material/Edit";
-import PublicIcon from "@mui/icons-material/Public";
+import {
+  AccessTimeIcon,
+  CheckCircleIcon,
+  ErrorIcon,
+  InfoIcon,
+  FiberNewIcon,
+  TrendingUpIcon,
+  CancelIcon,
+  HomeWorkIcon,
+  BuildCircleIcon,
+  EditIcon,
+  PublicIcon,
+} from "./icons";
 import type {
   BuilderVerificationStatus,
   ProjectStatus,

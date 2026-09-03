@@ -14,15 +14,18 @@ import {
   TableRow,
   TableContainer,
   Card,
+  Chip,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditIcon from "@mui/icons-material/Edit";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import DeleteIcon from "@mui/icons-material/Delete";
-import PublishIcon from "@mui/icons-material/Publish";
-import UnpublishedIcon from "@mui/icons-material/StopCircle";
-import FolderOffIcon from "@mui/icons-material/FolderOff";
+import {
+  AddIcon,
+  MoreVertIcon,
+  EditIcon,
+  VisibilityIcon,
+  DeleteIcon,
+  PublishIcon,
+  StopCircleIcon as UnpublishedIcon,
+  FolderOffIcon,
+} from "../components/icons";
 import {
   useProjects,
   useDeleteProject,
@@ -43,8 +46,26 @@ export default function ProjectsList() {
 
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuProjectId, setMenuProjectId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"ALL" | "DRAFT" | "PUBLISHED" | "ARCHIVED">("ALL");
 
-  const projects = data?.data ?? [];
+  const allProjects = data?.data ?? [];
+
+  const isPublished = (status: string) =>
+    ["UPCOMING", "UNDER_CONSTRUCTION", "READY"].includes(status);
+
+  const projects = allProjects.filter((p) => {
+    if (filter === "ALL") return true;
+    if (filter === "PUBLISHED") return isPublished(p.status);
+    if (filter === "DRAFT") return p.status === "DRAFT";
+    return p.status === "ARCHIVED";
+  });
+
+  const counts = {
+    ALL: allProjects.length,
+    DRAFT: allProjects.filter((p) => p.status === "DRAFT").length,
+    PUBLISHED: allProjects.filter((p) => isPublished(p.status)).length,
+    ARCHIVED: allProjects.filter((p) => p.status === "ARCHIVED").length,
+  };
 
   const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, id: string) => {
     setMenuAnchor(e.currentTarget);
@@ -56,27 +77,54 @@ export default function ProjectsList() {
     setMenuProjectId(null);
   };
 
-  const isPublished = (status: string) =>
-    ["UPCOMING", "UNDER_CONSTRUCTION", "READY"].includes(status);
-
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h4" fontWeight={700}>
-          Projects
-        </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", sm: "center" },
+          flexDirection: { xs: "column", sm: "row" },
+          gap: 1.5,
+          mb: 1,
+        }}
+      >
+        <Box>
+          <Typography variant="h4" fontWeight={700}>
+            Projects
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+            {allProjects.length} project{allProjects.length === 1 ? "" : "s"} in your portfolio
+          </Typography>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => navigate("/projects/new")}
+          sx={{ flexShrink: 0 }}
         >
           Create Project
         </Button>
       </Box>
 
+      {!isLoading && allProjects.length > 0 && (
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 3, mt: 2 }}>
+          {(["ALL", "PUBLISHED", "DRAFT", "ARCHIVED"] as const).map((key) => (
+            <Chip
+              key={key}
+              label={`${key === "ALL" ? "All" : key.charAt(0) + key.slice(1).toLowerCase()} (${counts[key]})`}
+              onClick={() => setFilter(key)}
+              color={filter === key ? "primary" : "default"}
+              variant={filter === key ? "filled" : "outlined"}
+              size="small"
+            />
+          ))}
+        </Box>
+      )}
+
       {isLoading ? (
         <SkeletonTable rows={5} columns={7} />
-      ) : projects.length === 0 ? (
+      ) : allProjects.length === 0 ? (
         <Card>
           <EmptyState
             icon={<FolderOffIcon sx={{ fontSize: 64 }} />}
@@ -84,6 +132,14 @@ export default function ProjectsList() {
             description="You haven't listed a property yet. Add your first project to start showcasing it to buyers."
             actionLabel="Create Project"
             onAction={() => navigate("/projects/new")}
+          />
+        </Card>
+      ) : projects.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<FolderOffIcon sx={{ fontSize: 64 }} />}
+            title="No projects match this filter"
+            description="Try a different filter to see more of your projects."
           />
         </Card>
       ) : (
@@ -102,7 +158,9 @@ export default function ProjectsList() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {projects.map((project) => (
+                {projects.map((project) => {
+                  const thumb = project.media?.find((m) => m.isPrimary) ?? project.media?.[0];
+                  return (
                   <TableRow
                     key={project.id}
                     hover
@@ -110,9 +168,35 @@ export default function ProjectsList() {
                     onClick={() => navigate(`/projects/${project.id}`)}
                   >
                     <TableCell>
-                      <Typography variant="body2" fontWeight={500}>
-                        {project.title}
-                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+                        {thumb ? (
+                          <Box
+                            component="img"
+                            src={thumb.url}
+                            alt=""
+                            sx={{ width: 40, height: 32, objectFit: "cover", borderRadius: 1, flexShrink: 0, bgcolor: "#EBF0F7" }}
+                          />
+                        ) : (
+                          <Box
+                            sx={{
+                              width: 40,
+                              height: 32,
+                              borderRadius: 1,
+                              flexShrink: 0,
+                              bgcolor: "#EBF0F7",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#1B2A4A",
+                            }}
+                          >
+                            <FolderOffIcon sx={{ fontSize: 16 }} />
+                          </Box>
+                        )}
+                        <Typography variant="body2" fontWeight={500} noWrap sx={{ maxWidth: 240 }}>
+                          {project.title}
+                        </Typography>
+                      </Box>
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={project.status} />
@@ -141,7 +225,8 @@ export default function ProjectsList() {
                       </IconButton>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
