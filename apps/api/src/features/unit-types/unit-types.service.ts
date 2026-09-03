@@ -38,6 +38,8 @@ export class UnitTypesService {
         price: dto.price,
         priceUnit: dto.priceUnit,
         bookingAmount: dto.bookingAmount,
+        parkingCount: dto.parkingCount,
+        parkingType: dto.parkingType,
         totalCount: dto.totalCount,
         availableCount: dto.availableCount,
         attributes: dto.attributes,

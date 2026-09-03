@@ -161,6 +161,21 @@ enum SiteVisitStatus {
   CANCELLED
 }
 
+enum ParkingType {
+  COVERED
+  OPEN
+  STILT
+  BASEMENT
+}
+
+enum MaintenanceFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUALLY
+  ONE_TIME
+}
+
 // ── Core ───────────────────────────────────────────
 
 model User {
@@ -289,6 +304,8 @@ model Project {
   videoWalkthroughUrl    String?
   virtualTour3dUrl       String?
   allowsSiteVisitBooking Boolean                   @default(true)
+  maintenanceAmount      Decimal?                  @db.Decimal(10, 2)
+  maintenanceFrequency   MaintenanceFrequency?
   isFeatured             Boolean                   @default(false)
   reviewStatus           ProjectReviewStatus       @default(DRAFT)
   verificationStatus     ProjectVerificationStatus @default(PENDING)
@@ -320,6 +337,7 @@ model Project {
   siteVisits          SiteVisitBooking[]
   faqs                ProjectFAQ[]
   reviewLogs          ProjectReviewLog[]
+  highlights          ProjectHighlight[]
 
   @@index([builderId, status])
   @@index([cityId, localityId, status])
@@ -359,6 +377,8 @@ model UnitType {
   price          Decimal      @db.Decimal(12, 2)
   priceUnit      PriceUnit    @default(TOTAL)
   bookingAmount  Decimal?     @db.Decimal(12, 2)
+  parkingCount   Int?
+  parkingType    ParkingType?
   totalCount     Int          @default(1)
   availableCount Int          @default(1)
   attributes     Json?
@@ -409,6 +429,7 @@ model ProjectMedia {
   unitType     UnitType? @relation(fields: [unitTypeId], references: [id])
   type         MediaType
   url          String
+  caption      String?
   displayOrder Int       @default(0)
   isPrimary    Boolean   @default(false)
   createdAt    DateTime  @default(now())
@@ -430,6 +451,8 @@ model Contact {
   isPrimary   Boolean        @default(false)
   createdAt   DateTime       @default(now())
 
+  assignedLeads Lead[]
+
   @@index([builderId])
   @@index([projectId])
 }
@@ -447,12 +470,15 @@ model Lead {
   message     String?
   status      LeadStatus     @default(NEW)
   contactedAt DateTime?
+  assignedContactId String?
+  assignedContact   Contact? @relation(fields: [assignedContactId], references: [id])
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
   @@index([builderId, status])
   @@index([projectId, createdAt])
   @@index([customerId])
+  @@index([assignedContactId])
 }
 
 model SavedProperty {
@@ -674,6 +700,17 @@ model ProjectFAQ {
   project      Project  @relation(fields: [projectId], references: [id])
   question     String
   answer       String
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model ProjectHighlight {
+  id           String   @id @default(uuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id])
+  text         String
   displayOrder Int      @default(0)
   createdAt    DateTime @default(now())
 

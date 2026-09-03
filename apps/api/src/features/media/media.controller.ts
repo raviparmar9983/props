@@ -29,6 +29,13 @@ class ReorderMediaDto {
   order: ReorderItemDto[];
 }
 
+class UpdateMediaCaptionDto {
+  @ApiPropertyOptional({ example: 'Clubhouse and pool deck, evening view', description: 'Caption / alt text used for accessibility and image SEO' })
+  @IsOptional()
+  @IsString()
+  caption?: string | null;
+}
+
 @ApiTags('Media')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -50,6 +57,7 @@ export class MediaController {
   }})
   @ApiQuery({ name: 'type', enum: Object.values(MediaType) })
   @ApiQuery({ name: 'unitTypeId', required: false })
+  @ApiQuery({ name: 'caption', required: false, description: 'Caption / alt text used for accessibility and image SEO' })
   @ApiOperation({ summary: 'Upload media to project' })
   async upload(
     @Param('projectId') projectId: string,
@@ -57,9 +65,10 @@ export class MediaController {
     @UploadedFile() file: Express.Multer.File,
     @Query('type') type?: MediaType,
     @Query('unitTypeId') unitTypeId?: string,
+    @Query('caption') caption?: string,
   ) {
     if (!type) throw new BadRequestException('Missing or invalid media type');
-    return this.mediaService.upload(user.sub, projectId, file, type, unitTypeId);
+    return this.mediaService.upload(user.sub, projectId, file, type, unitTypeId, caption);
   }
 
   @Delete('media/:id')
@@ -94,5 +103,16 @@ export class MediaController {
   @ApiOperation({ summary: 'List project media' })
   async listByProject(@Param('projectId') projectId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.mediaService.listByProject(user.sub, projectId);
+  }
+
+  @Patch('media/:id/caption')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set/update media caption (alt text)' })
+  async updateCaption(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateMediaCaptionDto,
+  ) {
+    return this.mediaService.updateCaption(user.sub, id, dto.caption ?? null);
   }
 }

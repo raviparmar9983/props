@@ -21,6 +21,7 @@ export class MediaService {
     file: Express.Multer.File,
     type: MediaType,
     unitTypeId?: string,
+    caption?: string,
   ) {
     await this.ownership.assertProjectOwned(builderUserId, projectId);
 
@@ -50,6 +51,7 @@ export class MediaService {
         projectId,
         type,
         url: result.url,
+        caption: caption ?? null,
         displayOrder: (maxOrder?.displayOrder ?? -1) + 1,
         isPrimary: false,
         unitTypeId: unitTypeId ?? null,
@@ -108,6 +110,14 @@ export class MediaService {
       }),
     ]);
     return { message: 'Primary media set' };
+  }
+
+  async updateCaption(builderUserId: string, mediaId: string, caption: string | null) {
+    await this.ownership.assertMediaOwned(builderUserId, mediaId);
+    return this.prisma.projectMedia.update({
+      where: { id: mediaId },
+      data: { caption },
+    });
   }
 
   async listByProject(builderUserId: string, projectId: string) {

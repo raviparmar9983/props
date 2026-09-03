@@ -325,6 +325,7 @@ export class PublicService {
         constructionUpdates: { orderBy: { updateDate: 'desc' } },
         specifications: { orderBy: { category: 'asc' } },
         faqs: { orderBy: { displayOrder: 'asc' } },
+        highlights: { orderBy: { displayOrder: 'asc' } },
       },
     });
 

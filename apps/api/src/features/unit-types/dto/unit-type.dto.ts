@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsEnum, IsInt, IsNumber, Min, ValidateNested } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PropertyType, AreaUnit, PriceUnit, Facing } from '@prisma/client';
+import { PropertyType, AreaUnit, PriceUnit, Facing, ParkingType } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class CreateUnitTypeDto {
@@ -60,6 +60,17 @@ export class CreateUnitTypeDto {
   @IsOptional()
   @IsNumber()
   bookingAmount?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'Number of parking slots included with this unit type' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  parkingCount?: number;
+
+  @ApiPropertyOptional({ enum: ParkingType })
+  @IsOptional()
+  @IsEnum(ParkingType)
+  parkingType?: ParkingType;
 
   @ApiProperty({ example: 40 })
   @IsInt()
@@ -136,6 +147,17 @@ export class UpdateUnitTypeDto {
   @IsOptional()
   @IsNumber()
   bookingAmount?: number;
+
+  @ApiPropertyOptional({ description: 'Number of parking slots included with this unit type' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  parkingCount?: number;
+
+  @ApiPropertyOptional({ enum: ParkingType })
+  @IsOptional()
+  @IsEnum(ParkingType)
+  parkingType?: ParkingType;
 
   @ApiPropertyOptional()
   @IsOptional()

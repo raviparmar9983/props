@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsEnum, IsBoolean, IsDateString, MaxLength, IsArray, IsInt, IsNumber, Min, Max } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ProjectStatus, ReraStatus, CertificateStatus, LandTitleType, LitigationStatus } from '@prisma/client';
+import { ProjectStatus, ReraStatus, CertificateStatus, LandTitleType, LitigationStatus, MaintenanceFrequency } from '@prisma/client';
 
 export class CreateProjectDto {
   @ApiProperty({ example: 'Skyline Heights' })
@@ -240,6 +240,17 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsBoolean()
   allowsSiteVisitBooking?: boolean;
+
+  @ApiPropertyOptional({ example: 2500, description: 'Recurring maintenance/upkeep charge amount' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maintenanceAmount?: number;
+
+  @ApiPropertyOptional({ enum: MaintenanceFrequency })
+  @IsOptional()
+  @IsEnum(MaintenanceFrequency)
+  maintenanceFrequency?: MaintenanceFrequency;
 
   @ApiPropertyOptional()
   @IsOptional()
