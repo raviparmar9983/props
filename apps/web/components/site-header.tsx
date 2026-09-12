@@ -2,66 +2,103 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, BookHeart, Compass, House, UserRound } from "lucide-react";
-import { useAuth } from "../lib/hooks";
+import { Building2, Heart, UserRound } from "lucide-react";
+import { useAuth, useSavedProperties } from "../lib/hooks";
 import { useAuthSheet } from "../lib/auth-sheet-store";
+import { BrandMark } from "./brand-mark";
 
 const NAV_LINKS = [
-  { href: "/", label: "Home", Icon: House },
-  { href: "/search", label: "Browse", Icon: Compass },
-  // { href: "/saved", label: "Saved", Icon: BookHeart },
+  { href: "/", label: "Home" },
+  { href: "/search", label: "Properties" },
+  { href: "/builders", label: "Builders" },
+  { href: "/cities", label: "Cities" },
+  { href: "/#about", label: "About" },
 ];
 
 export function SiteHeader() {
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
+  const { data: savedData } = useSavedProperties();
   const openAuth = useAuthSheet((state) => state.openSheet);
+  const builderUrl = process.env.NEXT_PUBLIC_BUILDER_APP_URL ?? "http://localhost:5173";
+  const savedCount = savedData?.data.length ?? 0;
 
   return (
-    <header className="sticky top-0 z-40 hidden border-b border-slate-200/90 bg-paper/90 backdrop-blur-xl md:block">
-      <div className="mx-auto flex h-[72px] max-w-6xl items-center gap-8 px-4">
-        <Link href="/" className="flex shrink-0 items-center rounded-input focus-visible:outline-offset-4" aria-label="VerifiedProps home">
-          <img src="/logo-full.svg" alt="VerifiedProps" className="h-8 w-auto" />
+    <header className="sticky top-0 z-40 hidden border-b border-slate-100 bg-white/95 backdrop-blur-md md:block">
+      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-6">
+        {/* Brand Logo */}
+        <Link href="/" className="flex shrink-0 items-center focus-visible:outline-offset-4" aria-label="PropertiesWale home">
+          <BrandMark />
         </Link>
 
-        <nav className="flex items-center gap-1 rounded-pill bg-slate-100/80 p-1" aria-label="Primary">
+        {/* Center Nav Links */}
+        <nav className="flex items-center gap-8" aria-label="Primary">
           {NAV_LINKS.map((l) => {
             const active =
               l.href === "/"
                 ? pathname === "/"
                 : l.href === "/search"
                 ? pathname === "/search" || pathname.startsWith("/projects/")
-                : pathname === l.href || pathname.startsWith(`${l.href}/`);
+                : pathname === l.href;
             return (
               <Link
-                key={l.href}
+                key={l.label}
                 href={l.href}
-                className={`inline-flex items-center gap-2 rounded-pill px-3.5 py-2 text-sm font-semibold ${
+                className={`text-sm font-medium transition-colors ${
                   active
-                    ? "bg-surface text-ink-blue shadow-sm"
-                    : "text-slate-600 hover:text-ink-blue"
+                    ? "font-semibold text-accent"
+                    : "text-slate-700 hover:text-accent"
                 }`}
               >
-                <l.Icon size={16} strokeWidth={2} aria-hidden />
                 {l.label}
               </Link>
             );
           })}
         </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <Link href="/notifications" aria-label="Notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-ink-blue">
-            <Bell size={19} strokeWidth={2} aria-hidden />
-            {isAuthenticated && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-accent" />}
+
+        {/* Right Action Items */}
+        <div className="flex items-center gap-3">
+          {/* Wishlist Heart Icon with Count Badge */}
+          <Link
+            href="/saved"
+            aria-label="Saved Wishlist Properties"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100"
+          >
+            <Heart size={20} strokeWidth={1.8} className="text-slate-700" aria-hidden />
+            {savedCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white shadow-sm">
+                {savedCount}
+              </span>
+            )}
           </Link>
+
+          {/* List Property Button */}
+          <a
+            href={builderUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-800 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50"
+          >
+            <Building2 size={15} strokeWidth={2} aria-hidden />
+            List Property
+          </a>
+
+          {/* Sign In Button */}
           {isAuthenticated ? (
-            <Link href="/saved" className="inline-flex items-center gap-2 rounded-pill border border-slate-200 bg-surface px-3.5 py-2 text-sm font-semibold text-ink-blue hover:border-accent/60">
-              <UserRound size={16} strokeWidth={2} aria-hidden />
+            <Link
+              href="/profile"
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-ink-blue px-5 text-xs font-semibold text-white shadow-sm hover:bg-ink-blue/90"
+            >
+              <UserRound size={15} strokeWidth={2} aria-hidden />
               Account
             </Link>
           ) : (
-            <button onClick={openAuth} className="inline-flex items-center gap-2 rounded-pill bg-ink-blue px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blueprint">
-              <UserRound size={16} strokeWidth={2} aria-hidden />
-              Sign in
+            <button
+              onClick={openAuth}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-ink-blue px-5 text-xs font-semibold text-white shadow-sm hover:bg-ink-blue/90"
+            >
+              <UserRound size={15} strokeWidth={2} aria-hidden />
+              Sign In
             </button>
           )}
         </div>

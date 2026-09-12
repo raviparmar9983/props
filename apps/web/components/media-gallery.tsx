@@ -243,6 +243,8 @@ export function MediaGallery({
                 <ResilientImage
                   src={item.url}
                   alt={`${alt} photo ${i + 1}`}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : "auto"}
                   draggable={false}
                   onClick={handleClick}
                   wrapperClassName="h-full w-full shrink-0 cursor-pointer select-none"

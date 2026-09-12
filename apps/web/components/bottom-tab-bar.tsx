@@ -19,6 +19,10 @@ function isActive(pathname: string, href: string): boolean {
 export function BottomTabBar() {
   const pathname = usePathname();
 
+  // Project pages own the mobile viewport with their enquiry action. Rendering
+  // both fixed bars would overlap the primary conversion control.
+  if (pathname.startsWith("/projects/")) return null;
+
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[var(--shadow-sticky-bar)] backdrop-blur-xl md:hidden"

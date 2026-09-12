@@ -21,7 +21,7 @@ const POINTS = [
 export function TrustSection() {
   return (
     <section className="mx-auto max-w-6xl px-4 pt-10">
-      <div className="rounded-card-xl bg-accent-soft/60 p-5 md:p-8">
+      {/* <div className="rounded-card-xl bg-accent-soft/60 p-5 md:p-8">
         <h2 className="text-center font-display text-xl font-semibold text-slate-900 md:text-2xl">
           Why buy through us
         </h2>
@@ -47,7 +47,7 @@ export function TrustSection() {
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
     </section>
   );
 }

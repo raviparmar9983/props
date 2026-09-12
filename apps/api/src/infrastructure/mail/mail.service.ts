@@ -71,8 +71,8 @@ export class MailService implements OnModuleInit {
     await this.send(to, subject, html);
   }
 
-  async sendNewLead(to: string, projectTitle: string, customerName: string, customerEmail: string, interest: string, leadId?: string, timestamp?: string): Promise<void> {
-    const { subject, html } = newLeadEmail(projectTitle, customerName, customerEmail, interest, leadId, timestamp);
+  async sendNewLead(to: string, projectTitle: string, customerName: string, customerEmail: string, customerPhone: string | undefined, interest: string, leadId?: string, timestamp?: string): Promise<void> {
+    const { subject, html } = newLeadEmail(projectTitle, customerName, customerEmail, customerPhone, interest, leadId, timestamp);
     await this.send(to, subject, html);
   }
 
@@ -95,7 +95,7 @@ export class MailService implements OnModuleInit {
         subject,
         html,
         headers: {
-          'X-Mailer': 'VerifiedProps',
+          'X-Mailer': 'PropertiesWale',
         },
       });
       this.logger.log(`Email sent to ${to}: ${subject}`);

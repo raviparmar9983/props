@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChipRow } from "./filter-chips";
 import {
   Building2,
-  Store,
   Building,
-  Home,
+  House,
+  MapPin,
+  Store,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -17,31 +18,30 @@ const CATEGORIES: {
   Icon: LucideIcon;
 }[] = [
   { label: "Flats", value: "FLAT", hint: "Apartments", Icon: Building2 },
-  { label: "Shops", value: "SHOP", hint: "Retail space", Icon: Store },
-  { label: "Corporate", value: "CORPORATE", hint: "Offices", Icon: Building },
-  { label: "Tenements", value: "TENEMENT", hint: "Compact homes", Icon: Home },
+  { label: "Houses", value: "HOUSE", hint: "Independent Homes", Icon: House },
+  { label: "Plots", value: "PLOT", hint: "Residential & Commercial", Icon: MapPin },
+  { label: "Shops", value: "SHOP", hint: "Retail Spaces", Icon: Store },
+  { label: "Commercial", value: "CORPORATE", hint: "Offices & Spaces", Icon: Building },
+  { label: "Rent", value: "RENT", hint: "Find Rental Homes", Icon: KeyRound },
 ];
 
 export function CategoryTiles() {
   return (
-    <ChipRow className="-mx-4 px-4 sm:mx-0 sm:px-0">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
       {CATEGORIES.map((cat) => (
         <Link
-          key={cat.value}
-          href={`/search?propertyType=${cat.value}`}
-          className="flex w-40 shrink-0 flex-col gap-2.5 rounded-card border border-slate-200 bg-surface p-4 shadow-card transition-all duration-[var(--duration-base)] ease-[var(--ease-spring)] hover:border-accent/30 hover:shadow-card-hover active:scale-[0.98] sm:w-44"
+          key={cat.label}
+          href={cat.value === "RENT" ? "/search?purpose=rent" : `/search?propertyType=${cat.value}`}
+          className="flex flex-col items-center text-center justify-center rounded-xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-slate-200 hover:shadow-md"
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-pill bg-accent-soft text-accent">
-            <cat.Icon size={22} strokeWidth={1.8} aria-hidden />
-          </span>
-          <span>
-            <span className="block font-display text-base font-semibold text-slate-900">
-              {cat.label}
-            </span>
-            <span className="block text-xs text-slate-400">{cat.hint}</span>
-          </span>
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-ink-blue">
+            <cat.Icon size={24} strokeWidth={1.8} aria-hidden />
+          </div>
+          <p className="font-bold text-sm text-slate-900">{cat.label}</p>
+          <p className="mt-0.5 text-[11px] text-slate-500">{cat.hint}</p>
         </Link>
       ))}
-    </ChipRow>
+    </div>
   );
 }
+

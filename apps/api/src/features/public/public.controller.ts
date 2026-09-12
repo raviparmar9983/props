@@ -29,6 +29,7 @@ export class PublicController {
   @ApiQuery({ name: 'maxArea', required: false, description: 'Maximum carpet area in sqft' })
   @ApiQuery({ name: 'amenities', required: false, description: 'Comma-separated amenity IDs (AND)' })
   @ApiQuery({ name: 'verifiedOnly', required: false, enum: ['true', 'false'], description: 'Only projects from verified builders' })
+  @ApiQuery({ name: 'verified', required: false, enum: ['true', 'false'], description: 'Deprecated alias for verifiedOnly' })
   @ApiQuery({ name: 'possessionStatus', required: false, description: 'Comma-separated ProjectStatus values (OR)' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
@@ -47,6 +48,7 @@ export class PublicController {
     @Query('maxArea') maxArea?: string,
     @Query('amenities') amenities?: string,
     @Query('verifiedOnly') verifiedOnly?: string,
+    @Query('verified') verified?: string,
     @Query('possessionStatus') possessionStatus?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -54,7 +56,7 @@ export class PublicController {
   ) {
     return this.publicService.searchProjects({
       q, city, localityId, locality, builder, propertyType, bedrooms, amenities, possessionStatus, sort,
-      verifiedOnly: verifiedOnly === 'true',
+      verifiedOnly: (verifiedOnly ?? verified) === 'true',
       minPrice: minPrice !== undefined ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice !== undefined ? parseFloat(maxPrice) : undefined,
       minArea: minArea !== undefined ? parseFloat(minArea) : undefined,

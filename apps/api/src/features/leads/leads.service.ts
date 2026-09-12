@@ -13,7 +13,13 @@ export class LeadsService {
     private mailService: MailService,
   ) {}
 
-  async create(customerId: string, dto: { projectId: string; unitTypeId?: string; message?: string }) {
+  async create(customerId: string, dto: {
+    projectId: string;
+    unitTypeId?: string;
+    message?: string;
+    contactName?: string;
+    contactPhone?: string;
+  }) {
     const [project, customer] = await Promise.all([
       this.prisma.project.findUnique({ where: { id: dto.projectId } }),
       this.prisma.user.findUnique({ where: { id: customerId } }),
@@ -40,6 +46,8 @@ export class LeadsService {
         customerId,
         unitTypeId: dto.unitTypeId,
         message: dto.message,
+        contactName: dto.contactName?.trim() || null,
+        contactPhone: dto.contactPhone?.trim() || null,
         status: LeadStatus.NEW,
       },
     });
@@ -73,8 +81,9 @@ export class LeadsService {
         this.mailService.sendNewLead(
           recipientEmail,
           project.title,
-          customer.email.split("@")[0] ?? customer.email,
+          lead.contactName ?? customer.email.split("@")[0] ?? customer.email,
           customer.email,
+          lead.contactPhone ?? customer.phone ?? undefined,
           dto.message ?? "General inquiry",
           leadId,
           timestamp,

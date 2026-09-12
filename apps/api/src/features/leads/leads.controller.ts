@@ -6,7 +6,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { UserRole, LeadStatus } from '@prisma/client';
-import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsEnum, Matches, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 class CreateLeadDto {
@@ -23,6 +23,18 @@ class CreateLeadDto {
   @IsOptional()
   @IsString()
   message?: string;
+
+  @ApiPropertyOptional({ description: 'Name provided by the customer for this enquiry' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  contactName?: string;
+
+  @ApiPropertyOptional({ description: 'Phone number provided by the customer for this enquiry' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[+()\-\s0-9]{7,24}$/)
+  contactPhone?: string;
 }
 
 class UpdateLeadStatusDto {

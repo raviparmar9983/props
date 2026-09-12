@@ -78,12 +78,6 @@ a { color: inherit; text-decoration: none; }
   outline-offset: 2px;
 }
 
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: none;
-}
-
 .font-display { font-family: var(--font-display); }
 .font-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 

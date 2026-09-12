@@ -17,6 +17,7 @@ interface ImageCarouselProps {
   slideClassName?: string;
   rounded?: boolean;
   initialIndex?: number;
+  priority?: boolean;
 }
 
 export function ImageCarousel({
@@ -32,6 +33,7 @@ export function ImageCarousel({
   slideClassName = "",
   rounded = true,
   initialIndex = 0,
+  priority = false,
 }: ImageCarouselProps) {
   const [index, setIndex] = useState(initialIndex);
   const [dx, setDx] = useState(0);
@@ -130,6 +132,8 @@ export function ImageCarousel({
             key={`${src}-${i}`}
             src={src}
             alt={`${alt} photo ${i + 1}`}
+            loading={priority && i === initialIndex ? "eager" : "lazy"}
+            fetchPriority={priority && i === initialIndex ? "high" : "auto"}
             draggable={false}
             onClick={onOpen ? handleClick : undefined}
             wrapperClassName={`h-full w-full shrink-0 cursor-pointer select-none ${slideClassName}`}

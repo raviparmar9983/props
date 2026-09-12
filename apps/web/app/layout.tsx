@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 import type { PropsWithChildren } from "react";
 import { BottomTabBar } from "../components/bottom-tab-bar";
 import { SiteHeader } from "../components/site-header";
+import { SiteFooter } from "../components/site-footer";
 import { LoginSheet } from "../components/login-sheet";
 import { Toaster } from "../components/toaster";
 import { CompareSelectionProvider } from "../lib/compareSelection";
@@ -14,8 +15,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    template: "%s | VerifiedProps — Verified Builders, Real Listings",
-    default: "VerifiedProps — Buy Homes from Verified Builders | Flats, Houses, Plots",
+    template: "%s | PropertiesWale — Verified Homes. Better Decisions.",
+    default: "PropertiesWale — Buy Homes from Verified Builders | Flats, Houses, Plots",
   },
   description:
     "Find flats, houses, plots and commercial spaces from verified builders. Transparent pricing, direct contact, no brokers. Browse 100% verified real estate projects across India.",
@@ -41,9 +42,9 @@ export const metadata: Metadata = {
     "ready to move flats",
     "verified real estate platform",
   ],
-  authors: [{ name: "VerifiedProps" }],
-  creator: "VerifiedProps",
-  publisher: "VerifiedProps",
+  authors: [{ name: "PropertiesWale" }],
+  creator: "PropertiesWale",
+  publisher: "PropertiesWale",
   formatDetection: {
     telephone: true,
     email: true,
@@ -51,9 +52,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "VerifiedProps",
+    siteName: "PropertiesWale",
     locale: "en_IN",
-    title: "VerifiedProps — Buy Homes from Verified Builders | Flats, Houses, Plots",
+    title: "PropertiesWale — Buy Homes from Verified Builders | Flats, Houses, Plots",
     description:
       "Find flats, houses, plots and commercial spaces from verified builders. Transparent pricing, direct contact, no brokers.",
     images: [
@@ -61,13 +62,13 @@ export const metadata: Metadata = {
         url: "/og-default.png",
         width: 1200,
         height: 630,
-        alt: "VerifiedProps — Verified Builders, Real Listings",
+        alt: "PropertiesWale — Verified Builders, Real Listings",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VerifiedProps — Buy Homes from Verified Builders",
+    title: "PropertiesWale — Buy Homes from Verified Builders",
     description:
       "Flats, houses and plots from verified builders. No brokers, transparent pricing.",
     images: ["/og-default.png"],
@@ -97,10 +98,10 @@ export const metadata: Metadata = {
     },
   },
   other: {
-    "application-name": "VerifiedProps",
+    "application-name": "PropertiesWale",
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "default",
-    "apple-mobile-web-app-title": "VerifiedProps",
+    "apple-mobile-web-app-title": "PropertiesWale",
     "theme-color": "#1B2A4A",
   },
 };
@@ -124,6 +125,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
           <CompareSelectionProvider>
             <SiteHeader />
             <main className="min-h-screen pb-20 md:pb-0">{children}</main>
+            <SiteFooter />
             <Toaster />
             <FloatingCompareBar />
             <BottomTabBar />

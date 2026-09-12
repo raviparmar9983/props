@@ -105,7 +105,7 @@ export function ExpressInterest({
       </div>
 
       {/* Desktop: sticky sidebar enquiry card */}
-      <div className="sticky top-24 hidden w-[340px] shrink-0 lg:block xl:w-[360px]">
+      <div className="sticky top-24 hidden w-full shrink-0 lg:block">
         <div className="overflow-hidden rounded-card-xl border border-slate-200 bg-surface shadow-card">
           {/* Price block */}
           <div className="px-6 pb-5 pt-6">

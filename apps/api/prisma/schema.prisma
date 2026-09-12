@@ -467,6 +467,8 @@ model Lead {
   builder     BuilderProfile @relation(fields: [builderId], references: [id])
   customerId  String
   customer    User           @relation(fields: [customerId], references: [id])
+  contactName String?
+  contactPhone String?
   message     String?
   status      LeadStatus     @default(NEW)
   contactedAt DateTime?

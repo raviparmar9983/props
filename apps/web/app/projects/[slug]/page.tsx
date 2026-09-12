@@ -1,36 +1,27 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { ReactElement } from "react";
 import { getProjectBySlug, searchProjects } from "../../../lib/api";
 import { ProjectMedia } from "../../../components/project-media";
-import { VerifiedBadge } from "../../../components/verified-badge";
-import { AmenityIcon } from "../../../components/amenity-icon";
-import { UnitTypeCards } from "../../../components/unit-type-cards";
 import { ProjectCard } from "../../../components/project-card";
+import { UnitTypeCards } from "../../../components/unit-type-cards";
 import { ExpressInterest } from "../../../features/leads/express-interest";
 import { ReadMore } from "../../../components/read-more";
-import { FloorPlans } from "../../../components/floor-plans";
-import { ProjectMap } from "../../../components/project-map";
-import { ContactList } from "../../../components/contact-list";
-import { TrustLegal } from "../../../components/trust-legal";
 import { PriceAndEmi } from "../../../components/price-and-emi";
-import { PaymentPlans } from "../../../components/payment-plans";
-import { Specifications } from "../../../components/specifications";
-import { NearbyLandmarks } from "../../../components/nearby-landmarks";
-import { ConstructionUpdates } from "../../../components/construction-updates";
-import { BuilderCard } from "../../../components/builder-card";
-import { ProjectFaqs } from "../../../components/project-faqs";
-import { CalendarDays, ChevronRight, Construction, House, IndianRupee, MapPin } from "lucide-react";
 import { CompareToggle } from "../../../components/compare-toggle";
-import { CompareDropdown } from "../../../components/compare-dropdown";
+import { SaveToggle } from "../../../components/save-toggle";
+import { ShareButton } from "../../../components/share-button";
+import { AmenityIcon } from "../../../components/amenity-icon";
 import {
-  formatPrice,
-  formatStatusLabel,
-  formatPossessionDate,
-  fileUrl,
-} from "../../../lib/format";
+  ArrowRight,
+  ChevronRight,
+  Download,
+  FileText,
+  MapPin,
+  ShieldCheck,
+} from "lucide-react";
 import type { PublicProjectSummary } from "../../../types/public";
+import { formatPrice, formatPossessionDate, formatStatusLabel } from "../../../lib/format";
 
 export const revalidate = 300;
 
@@ -38,134 +29,30 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  FLAT: "Flats",
-  HOUSE: "Houses",
-  PLOT: "Plots",
-  SHOP: "Shops",
-  CORPORATE: "Corporate",
-  TENEMENT: "Tenements",
-};
-
-function propertyTypeLabel(value: string): string {
-  return PROPERTY_TYPE_LABELS[value] ?? value;
+function getPropertyTypeLabel(unitTypes: { propertyType: string }[]): string {
+  const type = unitTypes[0]?.propertyType;
+  if (!type) return "Property";
+  const labels: Record<string, string> = {
+    FLAT: "Flats",
+    HOUSE: "Houses",
+    PLOT: "Plots",
+    SHOP: "Shops",
+    CORPORATE: "Commercial",
+  };
+  return labels[type] ?? type.charAt(0) + type.slice(1).toLowerCase();
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   try {
     const project = await getProjectBySlug(slug);
-    const primaryImage = project.media.find((m) => m.isPrimary)?.url;
-    const resolvedImage = primaryImage
-      ? (fileUrl(primaryImage) ?? primaryImage)
-      : null;
-    const title = project.metaTitle ?? `${project.title} in ${project.locality.name}, ${project.city.name} | VerifiedProps`;
-    const description =
-      project.metaDescription ??
-      `Buy ${project.title} in ${project.locality.name}, ${project.city.name}. ${project.description?.slice(0, 120) ?? "Explore verified builder project with transparent pricing."}`;
-
-    const propertyLabels = [...new Set(project.unitTypes.map((u) => PROPERTY_TYPE_LABELS[u.propertyType] ?? u.propertyType))];
-    const startingPrice = project.unitTypes.length
-      ? Math.min(...project.unitTypes.map((u) => u.price))
-      : null;
-    const keywords = [
-      project.title,
-      `buy ${propertyLabels[0]?.toLowerCase() ?? "property"} in ${project.city.name}`,
-      `${project.city.name} real estate`,
-      `${project.locality.name} property`,
-      `${project.builder.companyName} projects`,
-      "verified builder project",
-      "RERA approved project",
-      startingPrice ? `property under ${formatPrice(startingPrice)}` : "",
-      project.status === "READY_TO_MOVE" ? "ready to move" : "under construction",
-      "new launch property",
-      `${project.city.name} flats`,
-      `${project.city.name} houses`,
-      `${project.locality.name} apartments`,
-    ].filter(Boolean);
-
     return {
-      title,
-      description,
-      keywords,
-      authors: [{ name: project.builder.companyName }],
-      alternates: {
-        canonical: `/projects/${project.slug}`,
-      },
-      openGraph: {
-        title: project.metaTitle ?? `${project.title} — ${project.city.name}`,
-        description,
-        url: `/projects/${project.slug}`,
-        siteName: "VerifiedProps",
-        images: project.ogImageUrl
-          ? [{ url: project.ogImageUrl, width: 1200, height: 630, alt: project.title }]
-          : resolvedImage
-            ? [{ url: resolvedImage, width: 1200, height: 630, alt: project.title }]
-            : [],
-        locale: "en_IN",
-        type: "website",
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: project.metaTitle ?? project.title,
-        description,
-        images: project.ogImageUrl
-          ? [project.ogImageUrl]
-          : resolvedImage
-            ? [resolvedImage]
-            : [],
-      },
-      robots: {
-        index: true,
-        follow: true,
-      },
+      title: `${project.title} in ${project.locality.name}, ${project.city.name} | PropertiesWale`,
+      description: project.description ?? `Buy ${project.title} in ${project.locality.name}, ${project.city.name}. Verified builder project with zero brokerage.`,
     };
   } catch {
-    return {
-      title: "Project Not Found — VerifiedProps",
-      description: "The property you are looking for could not be found.",
-      robots: { index: false, follow: false },
-    };
+    return { title: "Project Not Found — PropertiesWale" };
   }
-}
-
-async function fetchSimilar(
-  slug: string,
-  citySlug: string,
-  propertyType: string | null,
-  startingPrice: number | null,
-): Promise<PublicProjectSummary[]> {
-  const exclude = (list: PublicProjectSummary[]) =>
-    list.filter((p) => p.slug !== slug);
-
-  const base = { city: citySlug, limit: 8 };
-
-  if (startingPrice !== null && propertyType) {
-    const byAll = await searchProjects({
-      ...base,
-      propertyType,
-      minPrice: Math.round(startingPrice * 0.7),
-      maxPrice: Math.round(startingPrice * 1.3),
-    });
-    const list = exclude(byAll.data);
-    if (list.length >= 3) return list.slice(0, 8);
-  }
-
-  if (propertyType) {
-    const byType = await searchProjects({ ...base, propertyType });
-    const list = exclude(byType.data);
-    if (list.length >= 3) return list.slice(0, 8);
-  }
-
-  const byCity = await searchProjects(base);
-  const cityList = exclude(byCity.data);
-  if (cityList.length >= 3) return cityList.slice(0, 8);
-
-  const anyWhere = await searchProjects({ limit: 8 });
-  const anyList = exclude(anyWhere.data);
-  if (anyList.length >= 3) return anyList.slice(0, 8);
-
-  return [];
 }
 
 export default async function ProjectPage({ params }: PageProps) {
@@ -186,340 +73,146 @@ export default async function ProjectPage({ params }: PageProps) {
     (sum, u) => sum + (u.availableCount > 0 ? u.availableCount : 0),
     0,
   );
-  const propertyTypeLabels = [
-    ...new Set(unitTypes.map((u) => propertyTypeLabel(u.propertyType))),
-  ];
-  const dominantTypeValue =
-    unitTypes.length > 0 ? unitTypes[0]!.propertyType : null;
+
+  const propertyTypeLabel = getPropertyTypeLabel(unitTypes);
   const statusLabel = formatStatusLabel(project.status);
-  const possession = formatPossessionDate(project.possessionDate);
-  const verified = project.builder.verificationStatus === "VERIFIED";
+  const possessionLabel = project.possessionDate
+    ? formatPossessionDate(project.possessionDate)
+    : statusLabel === "Move-in Ready"
+      ? "Ready to Move"
+      : "On request";
 
-  // Derive a BHK range (e.g. "2–3 BHK") from unit labels for the header line.
-  const bhkMatches = unitTypes
-    .map((u) => /(\d+)\s*BHK/i.exec(u.label)?.[1])
-    .filter((v): v is string => Boolean(v))
-    .map(Number);
-  const distinctBhk = [...new Set(bhkMatches)].sort((a, b) => a - b);
-  const configuration =
-    distinctBhk.length === 1
-      ? `${distinctBhk[0]} BHK`
-      : distinctBhk.length > 1
-        ? `${distinctBhk[0]}–${distinctBhk[distinctBhk.length - 1]!} BHK`
-        : null;
-  const headerMetaLine = [
-    propertyTypeLabels.join(" · ") || null,
-    configuration,
-    possession ? `Possession ${possession}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const isReraVerified = Boolean(project.reraProjectNumber);
+  const isNewLaunch = project.status === "UPCOMING" || project.status === "UNDER_CONSTRUCTION";
 
-  const primaryImageUrl =
-    project.media.find((m) => m.isPrimary)?.url ??
-    project.media.find((m) => m.type === "IMAGE")?.url ??
-    null;
-  const resolvedPrimary = primaryImageUrl
-    ? (fileUrl(primaryImageUrl) ?? primaryImageUrl)
-    : null;
-
-  const quickFacts: { label: string; value: string; icon: ReactElement }[] = [
-    {
-      label: "Type",
-      value: propertyTypeLabels.join(" · ") || "—",
-      icon: <House size={16} aria-hidden />,
-    },
-    {
-      label: "Status",
-      value: statusLabel || "—",
-      icon: <Construction size={16} aria-hidden />,
-    },
-    possession && {
-      label: "Possession",
-      value: possession,
-      icon: <CalendarDays size={16} aria-hidden />,
-    },
-    startingPrice !== null && {
-      label: "Starts at",
-      value: formatPrice(startingPrice),
-      icon: <IndianRupee size={16} aria-hidden />,
-    },
-  ].filter((f): f is { label: string; value: string; icon: ReactElement } =>
-    Boolean(f),
+  const brochureDocs = project.media.filter(
+    (m) => m.type === "BROCHURE" || m.type === "FLOOR_PLAN" || m.type === "MASTER_PLAN",
   );
+
+  const mapUrl =
+    project.latitude && project.longitude
+      ? `https://www.google.com/maps?q=${project.latitude},${project.longitude}`
+      : project.address
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`
+        : null;
 
   let similar: PublicProjectSummary[] = [];
   try {
-    similar = await fetchSimilar(
-      project.slug,
-      project.city.slug,
-      dominantTypeValue,
-      startingPrice,
-    );
+    const res = await searchProjects({ city: project.city.slug, limit: 5 });
+    similar = res.data.filter((p) => p.slug !== slug).slice(0, 4);
   } catch {
     similar = [];
   }
 
-  // Sort: featured first, then newest.
-  similar = [...similar].sort(
-    (a, b) => Number(b.isFeatured) - Number(a.isFeatured),
-  );
-
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: baseUrl,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Search",
-        item: `${baseUrl}/search`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: project.city.name,
-        item: `${baseUrl}/search?city=${encodeURIComponent(project.city.slug)}`,
-      },
-      {
-        "@type": "ListItem",
-        position: 4,
-        name: project.title,
-        item: `${baseUrl}/projects/${project.slug}`,
-      },
-    ],
-  };
-
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: project.title,
-    description: project.description ?? `${project.title} in ${project.locality.name}, ${project.city.name} by ${project.builder.companyName}`,
-    image: resolvedPrimary ? [resolvedPrimary] : [],
-    brand: {
-      "@type": "Brand",
-      name: project.builder.companyName,
-    },
-    category: propertyTypeLabels.join(", ") || "Real Estate",
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "INR",
-      lowPrice: startingPrice?.toString() ?? undefined,
-      highPrice: unitTypes.length > 0 ? Math.max(...unitTypes.map((u) => u.price)).toString() : undefined,
-      offerCount: unitTypes.length.toString(),
-      availability:
-        availableCount > 0
-          ? "https://schema.org/InStock"
-          : "https://schema.org/OutOfStock",
-      url: `${baseUrl}/projects/${project.slug}`,
-      seller: {
-        "@type": "Organization",
-        name: "VerifiedProps",
-      },
-    },
-    additionalProperty: [
-      {
-        "@type": "PropertyValue",
-        name: "Status",
-        value: statusLabel,
-      },
-      {
-        "@type": "PropertyValue",
-        name: "Location",
-        value: `${project.locality.name}, ${project.city.name}`,
-      },
-      project.latitude && project.longitude
-        ? {
-            "@type": "PropertyValue",
-            name: "GeoCoordinates",
-            value: `${project.latitude}, ${project.longitude}`,
-          }
-        : null,
-    ].filter(Boolean),
-  };
-
-  const faqJsonLd =
-    project.faqs && project.faqs.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: project.faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: faq.answer,
-            },
-          })),
-        }
-      : null;
-
-  const localBusinessJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "RealEstateAgent",
-    name: project.builder.companyName,
-    url: `${baseUrl}/builders/${project.builder.slug}`,
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: project.city.name,
-      addressCountry: "IN",
-    },
-    ...(project.latitude && project.longitude
-      ? {
-          geo: {
-            "@type": "GeoCoordinates",
-            latitude: project.latitude,
-            longitude: project.longitude,
-          },
-        }
-      : {}),
-  };
-
-  const shareUrl = `/projects/${project.slug}`;
-
   return (
-    <div className="pb-24 md:pb-0">
-      {/* Hero gallery (full-bleed mobile, contained desktop) */}
-      <div className="md:mx-auto md:max-w-6xl md:px-4 md:pt-6">
-        <ProjectMedia
-          media={project.media}
-          alt={project.title}
-          projectId={project.id}
-          shareTitle={project.title}
-          shareUrl={shareUrl}
-        />
-      </div>
+    <div className="min-h-screen bg-slate-50/50 pb-20">
+      <div className="mx-auto max-w-7xl px-6 pt-6">
+        {/* Breadcrumbs */}
+        <nav className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-400">
+          <Link href="/" className="hover:text-accent">Home</Link>
+          <ChevronRight size={12} />
+          <Link href="/search" className="hover:text-accent">Properties</Link>
+          <ChevronRight size={12} />
+          <Link href={`/search?city=${project.city.slug}`} className="hover:text-accent">{project.city.name}</Link>
+          <ChevronRight size={12} />
+          <span className="text-slate-500">{project.locality.name}</span>
+          <ChevronRight size={12} />
+          <span className="font-semibold text-slate-800">{project.title}</span>
+        </nav>
 
-      {/* A13 — JSON-LD structured data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
-      />
-      {faqJsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-        />
-      )}
-
-      <div className="relative z-10 mx-auto max-w-6xl px-4">
-        {/* Floating property header — overlaps the gallery bottom on desktop */}
-        <section className="mt-4 rounded-card-xl border border-slate-200/80 bg-surface p-5 shadow-card md:-mt-12 md:p-6">
-          <nav
-            aria-label="Breadcrumb"
-            className="mb-4 flex items-center gap-1.5 text-xs font-medium text-slate-400"
-          >
-            <Link href="/" className="transition-colors hover:text-accent">
-              Home
-            </Link>
-            <ChevronRight size={12} aria-hidden />
-            <Link
-              href="/search"
-              className="transition-colors hover:text-accent"
-            >
-              Search
-            </Link>
-            <ChevronRight size={12} aria-hidden />
-            <span className="truncate text-slate-600">{project.title}</span>
-          </nav>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="font-display text-[26px] font-bold leading-tight text-slate-900 md:text-[32px]">
+        {/* Header Title Section */}
+        <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-start">
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-display text-3xl font-extrabold text-slate-900 md:text-4xl">
                 {project.title}
               </h1>
-              <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500 md:text-[15px]">
-                <MapPin size={15} className="shrink-0 text-accent" aria-hidden />
-                {project.locality.name}, {project.city.name}
-              </p>
-              <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                {verified && <VerifiedBadge showLabel size={14} />}
-                {statusLabel && (
-                  <span className="rounded-pill bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent-dark">
-                    {statusLabel}
-                  </span>
-                )}
-              </div>
-              {headerMetaLine && (
-                <p className="mt-2.5 text-sm font-medium text-slate-600">
-                  {headerMetaLine}
-                </p>
+              {isReraVerified && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                  <ShieldCheck size={13} /> RERA Verified
+                </span>
+              )}
+              {isNewLaunch && (
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+                  New Launch
+                </span>
               )}
             </div>
-            <div className="relative flex shrink-0 items-center gap-2 self-start">
-              <CompareDropdown currentSlug={project.slug} />
-              <CompareToggle slug={project.slug} />
-            </div>
-          </div>
-        </section>
 
-        {/* Quick facts tiles */}
-        <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {quickFacts.map((f) => (
-            <div
-              key={f.label}
-              className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-card transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-card-hover"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft/70 text-accent-dark">
-                {f.icon}
-              </span>
-              <p className="mt-3 text-[11px] font-bold tracking-[0.1em] text-slate-400 uppercase">
-                {f.label}
-              </p>
-              <p
-                className="mt-1 truncate text-sm font-semibold text-slate-900 md:text-[15px]"
-                title={f.value}
-              >
-                {f.value}
-              </p>
-            </div>
-          ))}
-        </section>
-
-        <div className="mt-8 flex flex-col gap-8 pb-6 lg:flex-row lg:items-start lg:gap-8">
-          {/* Main content */}
-          <div className="min-w-0 flex-1">
-            {/* B1 — Trust & legal strip */}
-            <TrustLegal project={project} />
-
-            {/* A5 — Description */}
+            <p className="mt-2 flex items-center gap-1 text-sm text-slate-600">
+              <MapPin size={15} className="text-slate-400" />
+              {project.locality.name}, {project.city.name}
+            </p>
             {project.description && (
-              <section className="mt-8">
-                <h2 className="font-display text-xl font-semibold text-slate-900 md:text-[22px]">
-                  About this project
-                </h2>
-                <ReadMore text={project.description} className="mt-3" />
-              </section>
+              <p className="mt-1 max-w-xl text-xs text-slate-500 line-clamp-2">
+                {project.description.slice(0, 120)}
+              </p>
             )}
+          </div>
 
-            {/* A6 — Unit types & pricing */}
-            {unitTypes.length > 0 && (
-              <section className="mt-8">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-display text-xl font-semibold text-slate-900 md:text-[22px]">
-                    Unit types & pricing
-                  </h2>
-                  <span className="rounded-pill bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
-                    {availableCount > 0
-                      ? `${availableCount} available`
-                      : "Booked out"}
+          <div className="flex items-center gap-2">
+            <SaveToggle projectId={project.id} />
+            <CompareToggle slug={project.slug} />
+            <ShareButton title={project.title} url={`/projects/${project.slug}`} />
+          </div>
+        </div>
+
+        {/* Main 2-Column Grid */}
+        <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-start">
+          {/* Left Column */}
+          <div className="min-w-0 flex-1">
+            <ProjectMedia
+              media={project.media}
+              alt={project.title}
+              projectId={project.id}
+              shareTitle={project.title}
+              shareUrl={`/projects/${project.slug}`}
+            />
+
+            {/* Key Info Metric Tiles */}
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[
+                { value: propertyTypeLabel, label: "Property Type" },
+                { value: statusLabel, label: "Status" },
+                { value: possessionLabel, label: "Possession" },
+                { value: startingPrice ? formatPrice(startingPrice) : "On request", label: "Starting Price" },
+              ].map((tile) => (
+                <div key={tile.label} className="rounded-xl border border-slate-100 bg-white p-4 text-center shadow-sm">
+                  <span className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                    ✓
                   </span>
+                  <p className="text-xs font-bold text-slate-900">{tile.value}</p>
+                  <p className="mt-0.5 text-[10px] text-slate-400">{tile.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* About Project Section */}
+            <section className="mt-10 border-t border-slate-200 pt-8">
+              <h2 className="font-display text-xl font-bold text-slate-900">
+                About this project
+              </h2>
+              <ReadMore
+                text={
+                  project.description ??
+                  `${project.title} is a premium development located in ${project.locality.name}, ${project.city.name}. Designed for modern living, it offers excellent connectivity, high-quality infrastructure and a vibrant community environment.`
+                }
+                className="mt-3 text-xs leading-relaxed text-slate-600"
+              />
+            </section>
+
+            {/* Unit types & pricing */}
+            {unitTypes.length > 0 && (
+              <section className="mt-10 border-t border-slate-200 pt-8">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display text-xl font-bold text-slate-900">
+                    Unit types &amp; pricing
+                  </h2>
+                  {availableCount > 0 && (
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">
+                      {availableCount} units available
+                    </span>
+                  )}
                 </div>
                 <div className="mt-4">
                   <UnitTypeCards
@@ -531,149 +224,145 @@ export default async function ProjectPage({ params }: PageProps) {
               </section>
             )}
 
-            {/* B2 — Price breakdown + EMI calculator */}
+            {/* Price & EMI Calculator */}
             {startingPrice !== null && (
-              <PriceAndEmi
-                priceComponents={project.priceComponents ?? []}
-                startingPrice={startingPrice}
-              />
+              <section className="mt-10 border-t border-slate-200 pt-8">
+                <PriceAndEmi
+                  priceComponents={project.priceComponents ?? []}
+                  startingPrice={startingPrice}
+                />
+              </section>
             )}
 
-            {/* B3 — Payment plans & home loan partners */}
-            <PaymentPlans
-              plans={project.paymentPlans ?? []}
-              bankPartners={project.bankPartners ?? []}
-            />
-
-            {/* A7 — Amenities icon grid */}
+            {/* Amenities Grid */}
             {project.amenities.length > 0 && (
-              <section className="mt-8">
-                <h2 className="font-display text-xl font-semibold text-slate-900 md:text-[22px]">
-                  Amenities
-                </h2>
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                  {project.amenities.map((a) => (
+              <section className="mt-10 border-t border-slate-200 pt-8">
+                <h2 className="font-display text-xl font-bold text-slate-900">Amenities</h2>
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {project.amenities.map(({ amenity }) => (
                     <div
-                      key={a.amenity.id}
-                      className="flex items-center gap-2.5 rounded-card border border-slate-200 bg-surface px-3 py-3 shadow-card"
+                      key={amenity.id}
+                      className="flex items-center gap-2.5 rounded-xl border border-slate-100 bg-white p-3.5 text-xs font-semibold text-slate-700 shadow-sm"
                     >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-accent-soft text-accent">
-                        <AmenityIcon icon={a.amenity.icon} size={16} />
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                        <AmenityIcon icon={amenity.icon} size={14} />
                       </span>
-                      <span className="text-sm font-medium text-slate-700">
-                        {a.amenity.name}
-                      </span>
+                      {amenity.name}
                     </div>
                   ))}
                 </div>
               </section>
             )}
 
-            {/* B4 — Specifications accordion */}
-            <Specifications items={project.specifications ?? []} />
+            {/* You May Also Like */}
+            {similar.length > 0 && (
+              <section className="mt-12 border-t border-slate-200 pt-8">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display text-xl font-bold text-slate-900">
+                    You may also like
+                  </h2>
+                  <Link href={`/search?city=${project.city.slug}`} className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline">
+                    View all <ArrowRight size={13} />
+                  </Link>
+                </div>
+                <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                  {similar.map((p, i) => (
+                    <ProjectCard key={p.slug} project={p} index={i} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
 
-            {/* A8 — Floor plans & brochures */}
-            <FloorPlans media={project.media} />
+          {/* Right Column Sidebar */}
+          <aside className="w-full shrink-0 space-y-6 lg:w-80">
+              <ExpressInterest
+                projectId={project.id}
+                builderName={project.builder.companyName}
+                startingPriceLabel={startingPrice ? formatPrice(startingPrice) : "On request"}
+                availableCount={availableCount}
+                propertyTypeLabel={propertyTypeLabel}
+                possessionLabel={possessionLabel}
+                unitTypes={unitTypes.map((unit) => ({ id: unit.id, label: unit.label, price: unit.price }))}
+              />
 
-            {/* A9 — Location */}
-            <section className="mt-8">
-              <h2 className="font-display text-xl font-semibold text-slate-900 md:text-[22px]">
-                Location
-              </h2>
-              <div className="mt-3 rounded-card border border-slate-200 bg-surface p-5 shadow-card">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-accent-soft text-accent">
-                    <MapPin size={16} aria-hidden />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-relaxed text-slate-600">
-                      {project.address ?? `${project.locality.name}, ${project.city.name}`}
-                    </p>
-                    {project.latitude && project.longitude ? (
-                      <a
-                        href={`https://www.google.com/maps?q=${project.latitude},${project.longitude}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 inline-flex items-center gap-1 rounded-pill border border-accent/30 px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-white"
-                      >
-                        Open in Google Maps
-                        <ChevronRight size={14} aria-hidden />
-                      </a>
-                    ) : (
-                      <p className="mt-2 text-sm text-slate-400">
-                        Map location coming soon
-                      </p>
-                    )}
+              {/* Brochure & Floor Plans */}
+              {(brochureDocs.length > 0 || project.media.length > 0) && (
+                <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                  <h3 className="text-sm font-bold text-slate-900">Brochure &amp; Floor Plans</h3>
+                  <div className="mt-4 space-y-3 text-xs">
+                    {(brochureDocs.length > 0
+                      ? brochureDocs
+                      : project.media.slice(0, 3)
+                    ).map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-8 w-8 items-center justify-center rounded bg-red-100 text-red-600">
+                            <FileText size={16} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800 capitalize">
+                              {doc.type.replace(/_/g, " ").toLowerCase()}
+                            </p>
+                            <p className="text-[10px] text-slate-400">PDF</p>
+                          </div>
+                        </div>
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-100"
+                        >
+                          <Download size={12} />
+                          Download
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Location Map Box */}
+              <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-900">Location</h3>
+                {project.address && (
+                  <p className="mt-2 text-xs text-slate-600">
+                    📍 {project.address}
+                  </p>
+                )}
+                {mapUrl && (
+                  <a
+                    href={mapUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-block text-xs font-semibold text-accent hover:underline"
+                  >
+                    Open in Google Maps →
+                  </a>
+                )}
+                <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
+                  {project.latitude && project.longitude ? (
+                    <iframe
+                      title="Property location map"
+                      src={`https://maps.google.com/maps?q=${project.latitude},${project.longitude}&z=14&output=embed`}
+                      className="h-36 w-full border-0"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <img
+                      src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80"
+                      alt="Location preview"
+                      className="h-36 w-full object-cover"
+                    />
+                  )}
+                  <div className="bg-white p-2.5 text-[11px]">
+                    <p className="font-bold text-slate-800">{project.locality.name}</p>
+                    <p className="text-slate-400">{project.city.name}</p>
                   </div>
                 </div>
               </div>
-              {project.latitude && project.longitude && (
-                <ProjectMap
-                  latitude={project.latitude}
-                  longitude={project.longitude}
-                  title={project.title}
-                />
-              )}
-
-              {/* B5 — Nearby landmarks grouped under the map */}
-              <NearbyLandmarks items={project.landmarks ?? []} />
-            </section>
-
-            {/* B6 — Construction updates */}
-            <ConstructionUpdates items={project.constructionUpdates ?? []} />
-
-            {/* A10 — Builder info */}
-            <BuilderCard builder={project.builder} />
-
-            {/* A11 — Contacts (auth-gated, visually secondary) */}
-            <ContactList slug={project.slug} />
-          </div>
-
-          {/* A4 — Sticky CTA */}
-          <ExpressInterest
-            projectId={project.id}
-            builderName={project.builder.companyName}
-            startingPriceLabel={
-              startingPrice !== null ? formatPrice(startingPrice) : "On request"
-            }
-            availableCount={availableCount}
-            unitTypes={unitTypes.map((ut) => ({
-              id: ut.id,
-              label: ut.label,
-              price: ut.price,
-            }))}
-            propertyTypeLabel={
-              propertyTypeLabels.join(" · ") || null
-            }
-            configuration={configuration}
-            possessionLabel={possession || null}
-          />
+          </aside>
         </div>
-
-        {/* B8 — FAQs before similar properties */}
-        <ProjectFaqs items={project.faqs ?? []} />
-
-        {/* A12 — Similar properties */}
-        {similar.length > 0 && (
-          <section className="border-t border-slate-200 py-10">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl font-semibold text-slate-900 md:text-2xl">
-                You may also like
-              </h2>
-              <Link
-                href={`/search?city=${encodeURIComponent(project.city.slug)}`}
-                className="text-sm font-medium text-accent transition-colors hover:text-accent-dark"
-              >
-                View more
-              </Link>
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {similar.map((p, i) => (
-                <ProjectCard key={p.slug} project={p} index={i} />
-              ))}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   );

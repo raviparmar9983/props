@@ -1,0 +1,68 @@
+const path = require("path");
+
+const repoPath = process.env.REPO_PATH || path.resolve(__dirname, "..");
+const logsDir = process.env.PM2_LOG_DIR || path.join(repoPath, "logs");
+
+module.exports = {
+  apps: [
+    {
+      name: "verifiedprops-api",
+      cwd: path.join(repoPath, "apps", "api"),
+      script: "dist/main.js",
+      interpreter: "node",
+      kill_timeout: 30000,
+      max_memory_restart: "600M",
+      autorestart: true,
+      merge_logs: true,
+      out_file: path.join(logsDir, "api.out.log"),
+      error_file: path.join(logsDir, "api.err.log"),
+      env: {
+        NODE_ENV: "production",
+        PORT: process.env.API_PORT || "4000",
+        DATABASE_URL: process.env.DATABASE_URL,
+        CORS_ORIGIN_BUILDER: process.env.CORS_ORIGIN_BUILDER,
+        CORS_ORIGIN_ADMIN: process.env.CORS_ORIGIN_ADMIN,
+        CORS_ORIGIN_PUBLIC: process.env.CORS_ORIGIN_PUBLIC,
+        JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+        JWT_ACCESS_EXPIRY: process.env.JWT_ACCESS_EXPIRY || "15m",
+        JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+        JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || "7d",
+        OTP_LENGTH: process.env.OTP_LENGTH || "6",
+        OTP_EXPIRY_MINUTES: process.env.OTP_EXPIRY_MINUTES || "5",
+        OTP_MAX_ATTEMPTS: process.env.OTP_MAX_ATTEMPTS || "5",
+        OTP_RESEND_COOLDOWN_SECONDS: process.env.OTP_RESEND_COOLDOWN_SECONDS || "60",
+        SMTP_HOST: process.env.SMTP_HOST,
+        SMTP_PORT: process.env.SMTP_PORT || "587",
+        SMTP_USER: process.env.SMTP_USER,
+        SMTP_PASS: process.env.SMTP_PASS,
+        SMTP_FROM: process.env.SMTP_FROM,
+        STORAGE_DRIVER: process.env.STORAGE_DRIVER || "local",
+        FILE_UPLOAD_DIR: process.env.FILE_UPLOAD_DIR || "./uploads",
+        FILE_UPLOAD_BASE_URL: process.env.FILE_UPLOAD_BASE_URL,
+        FILE_MAX_SIZE_MB: process.env.FILE_MAX_SIZE_MB || "10",
+        THROTTLE_TTL: process.env.THROTTLE_TTL || "60",
+        THROTTLE_LIMIT: process.env.THROTTLE_LIMIT || "120",
+        ADMIN_SEED_EMAIL: process.env.ADMIN_SEED_EMAIL,
+        ADMIN_SEED_PASSWORD: process.env.ADMIN_SEED_PASSWORD,
+      },
+    },
+    {
+      name: "verifiedprops-web",
+      cwd: path.join(repoPath, "apps", "web"),
+      script: "node_modules/.bin/next",
+      args: `start -H 0.0.0.0 -p ${process.env.WEB_PORT || "3000"}`,
+      interpreter: "node",
+      kill_timeout: 10000,
+      max_memory_restart: "600M",
+      autorestart: true,
+      merge_logs: true,
+      out_file: path.join(logsDir, "web.out.log"),
+      error_file: path.join(logsDir, "web.err.log"),
+      env: {
+        NODE_ENV: "production",
+        PORT: process.env.WEB_PORT || "3000",
+        API_INTERNAL_BASE_URL: process.env.API_INTERNAL_BASE_URL || "http://127.0.0.1:4000",
+      },
+    },
+  ],
+};

@@ -4,6 +4,8 @@ export interface SubmitLeadPayload {
   projectId: string;
   unitTypeId?: string | undefined;
   message?: string | undefined;
+  contactName?: string | undefined;
+  contactPhone?: string | undefined;
 }
 
 export const leadsApi = {

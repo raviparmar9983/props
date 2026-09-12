@@ -3,18 +3,12 @@
 import Link from "next/link";
 import type { PublicProjectSummary } from "../types/public";
 import { ImageCarousel } from "./image-carousel";
-import { CompareToggle } from "./compare-toggle";
 import { SaveToggle } from "./save-toggle";
-import { formatPrice, formatStatusLabel, fileUrl } from "../lib/format";
+import { formatPrice, fileUrl } from "../lib/format";
 import {
   ArrowRight,
-  BadgeCheck,
-  Building2,
-  Home,
-  LandPlot,
+  CheckCircle2,
   MapPin,
-  Store,
-  type LucideIcon,
 } from "lucide-react";
 
 interface ProjectCardProps {
@@ -22,25 +16,14 @@ interface ProjectCardProps {
   index?: number;
 }
 
-const PROPERTY_TYPE_ICONS: Record<string, LucideIcon> = {
-  FLAT: Building2,
-  HOUSE: Home,
-  PLOT: LandPlot,
-  SHOP: Store,
-};
-
-const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  FLAT: "Flat",
-  HOUSE: "House",
-  PLOT: "Plot",
-  SHOP: "Shop",
-};
-
-function propertyTypeLabel(value: string): string {
-  return (
-    PROPERTY_TYPE_LABELS[value] ??
-    value.charAt(0) + value.slice(1).toLowerCase()
-  );
+function getStatusBadge(status: string) {
+  if (status === "READY" || status === "READY_TO_MOVE") {
+    return { label: "Move-In Ready", bg: "bg-emerald-600" };
+  }
+  if (status === "UPCOMING") {
+    return { label: "Upcoming", bg: "bg-amber-500" };
+  }
+  return { label: "New Launch", bg: "bg-blue-600" };
 }
 
 export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
@@ -48,136 +31,87 @@ export function ProjectCard({ project, index = 0 }: ProjectCardProps) {
     .map(fileUrl)
     .filter((u): u is string => u !== null);
 
-  const status = formatStatusLabel(project.status);
-  const isReady = project.status === "READY" || project.status === "READY_TO_MOVE";
-  const isNew =
-    project.status === "UNDER_CONSTRUCTION" || project.status === "UPCOMING";
+  const badge = getStatusBadge(project.status);
 
   return (
     <Link
       href={`/projects/${project.slug}`}
-      className="group animate-fade-rise block rounded-card-xl bg-surface p-1.5 shadow-card transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover"
-      style={{ animationDelay: `${Math.min(index * 40, 320)}ms` }}
+      className="group block overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
     >
-      {/* Image */}
+      {/* Image Container */}
       <div className="relative">
         <ImageCarousel
-          images={images}
+          images={images.length ? images : ["https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"]}
           alt={project.title}
+          initialIndex={0}
+          priority={index === 0}
           aspectClassName="aspect-[4/3]"
           rounded={false}
-          className="rounded-image-xl"
-          showDots={images.length > 1}
-          dotsPosition="top"
-          showArrows
-          slideClassName="transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]"
-          overlay={() => (
-            <>
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/75 via-black/30 to-transparent"
-              />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1 p-3">
-                {project.propertyTypes.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {project.propertyTypes.slice(0, 2).map((pt) => {
-                      const Icon = PROPERTY_TYPE_ICONS[pt] ?? Building2;
-                      return (
-                        <span
-                          key={pt}
-                          className="flex h-[22px] items-center gap-1 rounded-pill bg-white/20 px-2 text-[11px] font-medium text-white backdrop-blur-md"
-                        >
-                          <Icon size={11} strokeWidth={2.2} aria-hidden />
-                          {propertyTypeLabel(pt)}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-                <h3 className="truncate font-display text-lg font-semibold leading-tight text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.55)]">
-                  {project.title}
-                </h3>
-                <p className="flex items-center gap-1 text-[13px] font-medium text-white/90 [text-shadow:0_1px_6px_rgba(0,0,0,0.5)]">
-                  <MapPin size={12} strokeWidth={2.2} className="shrink-0" aria-hidden />
-                  <span className="truncate">
-                    {project.locality}, {project.city}
-                  </span>
-                </p>
-              </div>
-            </>
-          )}
+          className="w-full"
+          showDots={false}
+          showArrows={false}
         />
 
-        {/* Top-left: status */}
-        {status && (
-          <div className="absolute left-3 top-3 z-10">
-            <span
-              className={`rounded-pill px-2.5 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-sm ${
-                isReady
-                  ? "bg-success/90"
-                  : isNew
-                    ? "bg-accent/90"
-                    : "bg-ink-blue/80"
-              }`}
-            >
-              {status}
-            </span>
-          </div>
-        )}
+        {/* Top-left: status badge */}
+        <div className="absolute left-3 top-3 z-10">
+          <span
+            className={`rounded-md px-3 py-1 text-[11px] font-bold text-white shadow-sm ${badge.bg}`}
+          >
+            {badge.label}
+          </span>
+        </div>
 
-        {/* Top-right: photo count + compare + favorite */}
-        <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5">
-          {images.length > 1 && (
-            <span className="rounded-pill bg-black/35 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
-              {images.length} photos
-            </span>
-          )}
-          <CompareToggle slug={project.slug} size="lg" />
+        {/* Top-right: Heart wishlist icon */}
+        <div className="absolute right-3 top-3 z-10">
           <SaveToggle projectId={project.id} />
+        </div>
+
+        {/* Bottom-right: Photo Count Pill */}
+        <div className="absolute right-3 bottom-3 z-10">
+          <span className="rounded-md bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
+            {images.length || 5} photos
+          </span>
         </div>
       </div>
 
-      {/* Info */}
-      <div className="flex flex-col gap-2 px-2 pb-1 pt-3">
-        <p className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-          {project.builder.logo ? (
-            <img
-              src={fileUrl(project.builder.logo) ?? ""}
-              alt=""
-              className="h-4 w-4 shrink-0 rounded-full object-contain"
-            />
-          ) : (
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-ink-blue text-[9px] font-bold text-white">
-              {project.builder.companyName.charAt(0)}
-            </span>
-          )}
-          <span className="truncate">{project.builder.companyName}</span>
-          <BadgeCheck size={14} strokeWidth={2.2} className="shrink-0 text-accent" aria-label="Verified builder" />
+      {/* Card Info Section below image */}
+      <div className="p-4">
+        {/* Title */}
+        <h3 className="font-bold text-base text-slate-900 truncate group-hover:text-accent transition-colors">
+          {project.title}
+        </h3>
+
+        {/* Location */}
+        <p className="mt-1 flex items-center gap-1 text-xs text-slate-500 truncate">
+          <MapPin size={13} className="shrink-0 text-slate-400" aria-hidden />
+          <span className="truncate">
+            {project.locality}, {project.city}
+          </span>
         </p>
 
-        <div className="flex items-end justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate font-mono text-xl font-semibold tracking-tight text-slate-900">
+        {/* Builder */}
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-600">
+          <span className="truncate font-semibold">{project.builder.companyName}</span>
+          <CheckCircle2 size={14} className="shrink-0 text-amber-500 fill-amber-100" />
+        </div>
+
+        {/* Price & CTA Row */}
+        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+          <div>
+            <p className="font-bold text-base text-slate-900">
               {formatPrice(project.priceStartingFrom)}
-              {project.priceStartingFrom !== null && (
-                <span className="ml-0.5 text-accent-dark">+</span>
-              )}
+              <span className="text-slate-900">+</span>
             </p>
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400">
-              Starting price
-            </p>
+            <p className="text-[10px] text-slate-400">Starting Price</p>
           </div>
-          <span className="flex h-11 w-[118px] shrink-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-800 shadow-card transition-all duration-300 ease-out group-hover:scale-[1.02] group-hover:border-ink-blue group-hover:bg-ink-blue group-hover:text-white group-hover:shadow-card-hover">
+
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-white">
             View Details
-            <ArrowRight
-              size={14}
-              strokeWidth={2.4}
-              className="transition-transform duration-300 ease-out group-hover:translate-x-0.5"
-              aria-hidden
-            />
+            <ArrowRight size={13} strokeWidth={2.5} />
           </span>
         </div>
       </div>
     </Link>
   );
 }
+

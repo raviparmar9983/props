@@ -6,100 +6,21 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   searchProjects,
   getCities,
-  getAmenities,
-  getBuilders,
   getLocalities,
 } from "../../lib/api";
 import type { ProjectSearchParams, ProjectSort } from "../../lib/api/publicProjects";
 import { ProjectCard } from "../../components/project-card";
-import { Chip, ChipRow } from "../../components/filter-chips";
-import { BottomSheet } from "../../components/bottom-sheet";
-import { CollapsingSearchBar } from "../../components/collapsing-search-bar";
+import { HorizontalProjectCard } from "../../components/horizontal-project-card";
+import { HeroSearchCard } from "../../components/hero-search-card";
 import { ListGridSkeleton } from "../../components/skeleton";
-import { AmenityIcon } from "../../components/amenity-icon";
-import { toast } from "../../lib/toast";
 import type { PublicProjectSummary } from "../../types/public";
-import { fileUrl } from "../../lib/format";
 import {
-  Building2,
-  Check,
-  CircleCheck,
-  ListFilter,
-  LoaderCircle,
+  ArrowRight,
+  Grid,
+  List,
   SearchX,
-  ShieldCheck,
   X,
 } from "lucide-react";
-
-const LAKH = 100000;
-
-const PROPERTY_TYPES = [
-  { value: "FLAT", label: "Flats" },
-  { value: "HOUSE", label: "Houses" },
-  { value: "PLOT", label: "Plots" },
-  { value: "TENEMENT", label: "Tenements" },
-  { value: "SHOP", label: "Shops" },
-  { value: "CORPORATE", label: "Corporate" },
-] as const;
-
-const RESIDENTIAL_TYPES = ["FLAT", "TENEMENT"];
-
-const BEDROOM_OPTIONS = [
-  { value: "1", label: "1 BHK" },
-  { value: "2", label: "2 BHK" },
-  { value: "3", label: "3 BHK" },
-  { value: "4", label: "4+ BHK" },
-] as const;
-
-const POSSESSION_STATUSES = [
-  { value: "READY", label: "Ready to move" },
-  { value: "UNDER_CONSTRUCTION", label: "Under construction" },
-  { value: "UPCOMING", label: "Upcoming" },
-] as const;
-
-const SORT_OPTIONS: { value: ProjectSort; label: string }[] = [
-  { value: "newest", label: "Newest first" },
-  { value: "featured", label: "Featured" },
-  { value: "price_asc", label: "Price: low to high" },
-  { value: "price_desc", label: "Price: high to low" },
-];
-
-const APPLY_SHEETS = new Set(["type", "price", "bedrooms", "amenities", "more"]);
-
-type SheetKind =
-  | "sort"
-  | "city"
-  | "locality"
-  | "type"
-  | "price"
-  | "bedrooms"
-  | "amenities"
-  | "more"
-  | null;
-
-interface Draft {
-  propertyType: string[];
-  bedrooms: string[];
-  amenities: string[];
-  priceMinL: string;
-  priceMaxL: string;
-  areaMin: string;
-  areaMax: string;
-  possessionStatus: string[];
-  builder: string;
-}
-
-const emptyDraft = (): Draft => ({
-  propertyType: [],
-  bedrooms: [],
-  amenities: [],
-  priceMinL: "",
-  priceMaxL: "",
-  areaMin: "",
-  areaMax: "",
-  possessionStatus: [],
-  builder: "",
-});
 
 function splitCsv(value: string | null): string[] {
   if (!value) return [];
@@ -109,131 +30,32 @@ function splitCsv(value: string | null): string[] {
     .filter(Boolean);
 }
 
-function onlyDigits(value: string): string {
-  return value.replace(/[^0-9]/g, "").slice(0, 9);
+const PROPERTY_TYPES = [
+  { type: "Flat", val: "FLAT" },
+  { type: "House", val: "HOUSE" },
+  { type: "Plot", val: "PLOT" },
+  { type: "Commercial", val: "CORPORATE" },
+  { type: "Shop", val: "SHOP" },
+];
+
+const POSSESSION_OPTIONS = [
+  { label: "Ready to Move", val: "READY" },
+  { label: "Under Construction", val: "UNDER_CONSTRUCTION" },
+  { label: "New Launch", val: "UPCOMING" },
+];
+
+function formatBudgetChip(min: string, max: string): string | null {
+  const minL = Number(min);
+  const maxL = Number(max);
+  if (minL <= 0 && maxL >= 500) return null;
+  const fmt = (v: number) => (v >= 100 ? `₹${v / 100}Cr` : `₹${v}L`);
+  if (minL > 0 && maxL < 500) return `${fmt(minL)} - ${fmt(maxL)}`;
+  if (minL > 0) return `${fmt(minL)}+`;
+  if (maxL < 500) return `Under ${fmt(maxL)}`;
+  return null;
 }
 
-function formatPriceValue(n: number): string {
-  if (n >= 100) {
-    const cr = n / 100;
-    return `₹${cr % 1 === 0 ? cr : cr.toFixed(1)}Cr`;
-  }
-  return `₹${n}L`;
-}
-
-function formatPriceLabel(min: string, max: string): string {
-  const minL = min ? Math.round(Number(min) / LAKH) : 0;
-  const maxL = max ? Math.round(Number(max) / LAKH) : 0;
-  if (minL > 0 && maxL > 0) return `${formatPriceValue(minL)} – ${formatPriceValue(maxL)}`;
-  if (minL > 0) return `${formatPriceValue(minL)}+`;
-  if (maxL > 0) return `Under ${formatPriceValue(maxL)}`;
-  return "Price";
-}
-
-function compactLabels(
-  values: string[],
-  options: readonly { value: string; label: string }[],
-  fallback: string,
-): string {
-  if (values.length === 0) return fallback;
-  const labels = values.map((v) => options.find((o) => o.value === v)?.label ?? v);
-  if (values.length <= 2) return labels.join(" + ");
-  return `${values.length} selected`;
-}
-
-function RangeSlider({
-  min,
-  max,
-  step,
-  valueMin,
-  valueMax,
-  onMin,
-  onMax,
-}: {
-  min: number;
-  max: number;
-  step: number;
-  valueMin: number;
-  valueMax: number;
-  onMin: (v: number) => void;
-  onMax: (v: number) => void;
-}) {
-  const pct = (v: number) => ((v - min) / (max - min)) * 100;
-  const minPct = Math.min(pct(valueMin), 100);
-  const maxPct = Math.max(pct(valueMax), 0);
-  const overlap = maxPct - minPct < 3;
-  return (
-    <>
-      <style>{`
-        .range-track input[type="range"] {
-          -webkit-appearance: none;
-          appearance: none;
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 2.25rem;
-          margin: 0;
-          background: transparent;
-          pointer-events: none;
-        }
-        .range-track input[type="range"]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          pointer-events: auto;
-          width: 1.25rem;
-          height: 1.25rem;
-          border-radius: 9999px;
-          background: var(--color-accent);
-          border: 3px solid #fff;
-          box-shadow: 0 1px 4px rgb(15 23 42 / 0.35);
-          cursor: grab;
-        }
-        .range-track input[type="range"]::-moz-range-thumb {
-          pointer-events: auto;
-          width: 1.1rem;
-          height: 1.1rem;
-          border-radius: 9999px;
-          background: var(--color-accent);
-          border: 3px solid #fff;
-          box-shadow: 0 1px 4px rgb(15 23 42 / 0.35);
-          cursor: grab;
-        }
-      `}</style>
-      <div className="relative h-9">
-        <div className="absolute inset-x-0 top-2.5 h-1 rounded-full bg-slate-200" />
-        <div
-          className="absolute top-2.5 h-1 rounded-full bg-accent"
-          style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
-        />
-        <div className="range-track absolute inset-0">
-          <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={valueMin}
-            onChange={(e) => onMin(Math.min(Number(e.target.value), valueMax))}
-            style={{ zIndex: overlap ? 20 : 10 }}
-            aria-label="Minimum value"
-          />
-          <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={valueMax}
-            onChange={(e) => onMax(Math.max(Number(e.target.value), valueMin))}
-            style={{ zIndex: overlap ? 10 : 20 }}
-            aria-label="Maximum value"
-          />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function SearchPageInner() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -244,52 +66,66 @@ function SearchPageInner() {
   const bedrooms = useMemo(() => splitCsv(searchParams.get("bedrooms")), [searchParams]);
   const minPrice = searchParams.get("minPrice") ?? "";
   const maxPrice = searchParams.get("maxPrice") ?? "";
-  const minArea = searchParams.get("minArea") ?? "";
-  const maxArea = searchParams.get("maxArea") ?? "";
-  const amenities = useMemo(() => splitCsv(searchParams.get("amenities")), [searchParams]);
-  const builder = searchParams.get("builder") ?? "";
   const possessionStatus = useMemo(() => splitCsv(searchParams.get("possessionStatus")), [searchParams]);
-  const verified = searchParams.get("verified") === "true";
-  const featured = searchParams.get("featured") === "true";
-  const sort = (searchParams.get("sort") || (featured ? "featured" : "") || "newest") as ProjectSort;
+  const verified = searchParams.get("verifiedOnly") === "true";
+  const sort = (searchParams.get("sort") || "newest") as ProjectSort;
 
-  const [sheet, setSheet] = useState<SheetKind>(null);
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
-  const [liveCount, setLiveCount] = useState<number | null>(null);
-  const [counting, setCounting] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [selectedCity, setSelectedCity] = useState(city);
+  const [selectedLocalities, setSelectedLocalities] = useState<string[]>(localityId ? [localityId] : []);
+  const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>(
+    propertyType.length > 0 ? propertyType : [],
+  );
+  const [selectedBedrooms, setSelectedBedrooms] = useState<string[]>(bedrooms);
+  const [selectedPossession, setSelectedPossession] = useState<string[]>(possessionStatus);
+  const [showReraOnly, setShowReraOnly] = useState(verified);
+  const [budgetMin, setBudgetMin] = useState(minPrice ? String(Number(minPrice) / 100000) : "0");
+  const [budgetMax, setBudgetMax] = useState(maxPrice ? String(Number(maxPrice) / 100000) : "500");
+
+  // The URL is the source of truth: browser navigation, a shared link, and chip
+  // removal must all update the form controls as well as the results request.
+  useEffect(() => {
+    setSelectedCity(city);
+    setSelectedLocalities(localityId ? [localityId] : []);
+    setSelectedPropertyTypes(propertyType);
+    setSelectedBedrooms(bedrooms);
+    setSelectedPossession(possessionStatus);
+    setShowReraOnly(verified);
+    setBudgetMin(minPrice ? String(Number(minPrice) / 100000) : "0");
+    setBudgetMax(maxPrice ? String(Number(maxPrice) / 100000) : "500");
+  }, [city, localityId, propertyType, bedrooms, possessionStatus, verified, minPrice, maxPrice]);
 
   const apiParams = useMemo<ProjectSearchParams>(() => {
-    const p: ProjectSearchParams = { limit: 24 };
+    const p: ProjectSearchParams = { limit: 10 };
     if (q) p.q = q;
-    if (city) p.city = city;
-    if (localityId) p.localityId = localityId;
-    if (builder) p.builder = builder;
-    if (propertyType.length) p.propertyType = propertyType.join(",");
-    if (bedrooms.length) p.bedrooms = bedrooms.join(",");
-    if (minPrice) p.minPrice = Number(minPrice);
-    if (maxPrice) p.maxPrice = Number(maxPrice);
-    if (minArea) p.minArea = Number(minArea);
-    if (maxArea) p.maxArea = Number(maxArea);
-    if (amenities.length) p.amenities = amenities;
-    if (possessionStatus.length) p.possessionStatus = possessionStatus.join(",");
-    if (verified) p.verifiedOnly = true;
+    if (selectedCity) p.city = selectedCity;
+    const locId = selectedLocalities[0];
+    if (locId) p.localityId = locId;
+    if (selectedPropertyTypes.length) p.propertyType = selectedPropertyTypes.join(",");
+    if (selectedBedrooms.length) p.bedrooms = selectedBedrooms.join(",");
+    if (Number(budgetMin) > 0) p.minPrice = Number(budgetMin) * 100000;
+    if (Number(budgetMax) < 500) p.maxPrice = Number(budgetMax) * 100000;
+    if (selectedPossession.length) p.possessionStatus = selectedPossession.join(",");
+    if (showReraOnly) p.verifiedOnly = true;
     if (sort !== "newest") p.sort = sort;
     return p;
   }, [
-    q, city, localityId, builder, propertyType, bedrooms,
-    minPrice, maxPrice, minArea, maxArea, amenities, possessionStatus, verified, sort,
+    q, selectedCity, selectedLocalities, selectedPropertyTypes, selectedBedrooms,
+    budgetMin, budgetMax, selectedPossession, showReraOnly, sort,
   ]);
 
   const {
-    data, isLoading, isError, isFetching, isPlaceholderData,
-    fetchNextPage, hasNextPage, isFetchingNextPage,
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = useInfiniteQuery({
     queryKey: ["projects", apiParams],
     queryFn: ({ pageParam }) => searchProjects({ ...apiParams, page: pageParam }),
     initialPageParam: 1,
     getNextPageParam: (last) =>
       last.meta.page * last.meta.limit < last.meta.total ? last.meta.page + 1 : undefined,
-    placeholderData: (prev) => prev,
   });
 
   const { data: citiesData } = useQuery({
@@ -298,19 +134,16 @@ function SearchPageInner() {
     staleTime: Infinity,
   });
 
-  const { data: amenitiesData } = useQuery({
-    queryKey: ["amenities"],
-    queryFn: getAmenities,
-    staleTime: Infinity,
-  });
+  const cityObj = citiesData?.find((c) => c.slug === selectedCity);
+  const cityName = selectedCity
+    ? cityObj?.name ?? selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)
+    : "All cities";
 
-  const { data: buildersData } = useQuery({
-    queryKey: ["builders"],
-    queryFn: getBuilders,
-    staleTime: Infinity,
-  });
+  function searchHref(params: URLSearchParams): string {
+    const query = params.toString();
+    return query ? `/search?${query}` : "/search";
+  }
 
-  const cityObj = citiesData?.find((c) => c.slug === city);
   const { data: localitiesData } = useQuery({
     queryKey: ["localities", cityObj?.id],
     queryFn: () => getLocalities(cityObj!.id),
@@ -318,841 +151,461 @@ function SearchPageInner() {
     staleTime: Infinity,
   });
 
-  function openSheet(kind: SheetKind) {
-    if (!kind) {
-      setSheet(null);
-      return;
-    }
-    switch (kind) {
-      case "type":
-        setDraft((d) => ({ ...d, propertyType }));
-        break;
-      case "bedrooms":
-        setDraft((d) => ({ ...d, bedrooms }));
-        break;
-      case "amenities":
-        setDraft((d) => ({ ...d, amenities }));
-        break;
-      case "price":
-        setDraft((d) => ({
-          ...d,
-          priceMinL: minPrice ? String(Math.round(Number(minPrice) / LAKH)) : "",
-          priceMaxL: maxPrice ? String(Math.round(Number(maxPrice) / LAKH)) : "",
-        }));
-        break;
-      case "more":
-        setDraft((d) => ({
-          ...d,
-          possessionStatus,
-          areaMin: minArea,
-          areaMax: maxArea,
-          builder,
-        }));
-        break;
-    }
-    setSheet(kind);
-  }
-
-  function toggleDraftList(
-    key: "propertyType" | "bedrooms" | "amenities" | "possessionStatus",
-    value: string,
-  ) {
-    setDraft((d) => ({
-      ...d,
-      [key]: d[key].includes(value) ? d[key].filter((v) => v !== value) : [...d[key], value],
-    }));
-  }
-
-  function setListParam(sp: URLSearchParams, key: string, values: string[]) {
-    if (values.length > 0) sp.set(key, values.join(","));
-    else sp.delete(key);
-  }
-
-  const draftParams = useMemo<ProjectSearchParams>(() => {
-    const p: ProjectSearchParams = { ...apiParams, page: 1, limit: 1 };
-    switch (sheet) {
-      case "type":
-        if (draft.propertyType.length) p.propertyType = draft.propertyType.join(",");
-        else delete p.propertyType;
-        break;
-      case "bedrooms":
-        if (draft.bedrooms.length) p.bedrooms = draft.bedrooms.join(",");
-        else delete p.bedrooms;
-        break;
-      case "amenities":
-        if (draft.amenities.length) p.amenities = draft.amenities;
-        else delete p.amenities;
-        break;
-      case "price": {
-        const min = Number(draft.priceMinL) * LAKH;
-        const max = Number(draft.priceMaxL) * LAKH;
-        if (min > 0) p.minPrice = min;
-        else delete p.minPrice;
-        if (max > 0) p.maxPrice = max;
-        else delete p.maxPrice;
-        break;
-      }
-      case "more":
-        if (draft.possessionStatus.length) p.possessionStatus = draft.possessionStatus.join(",");
-        else delete p.possessionStatus;
-        if (draft.areaMin) p.minArea = Number(draft.areaMin);
-        else delete p.minArea;
-        if (draft.areaMax) p.maxArea = Number(draft.areaMax);
-        else delete p.maxArea;
-        if (draft.builder) p.builder = draft.builder;
-        else delete p.builder;
-        break;
-    }
-    return p;
-  }, [sheet, draft, apiParams]);
-
-  useEffect(() => {
-    if (!sheet || !APPLY_SHEETS.has(sheet)) return;
-    setCounting(true);
-    const timer = window.setTimeout(async () => {
-      try {
-        const res = await searchProjects(draftParams, { revalidate: 0, cache: "no-store" });
-        setLiveCount(res.meta.total);
-      } catch {
-        setLiveCount(null);
-      } finally {
-        setCounting(false);
-      }
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [sheet, draftParams]);
-
-  function applyDraft() {
-    const sp = new URLSearchParams(searchParams.toString());
-    switch (sheet) {
-      case "type": {
-        const onlyNonResidential =
-          draft.propertyType.length > 0 &&
-          draft.propertyType.every((t) => !RESIDENTIAL_TYPES.includes(t));
-        if (onlyNonResidential && bedrooms.length > 0) {
-          toast.info(
-            "Bedroom filters don't apply to these property types and were cleared",
-            "Filter cleared",
-          );
-          sp.delete("bedrooms");
-        }
-        setListParam(sp, "propertyType", draft.propertyType);
-        break;
-      }
-      case "bedrooms":
-        setListParam(sp, "bedrooms", draft.bedrooms);
-        break;
-      case "amenities":
-        setListParam(sp, "amenities", draft.amenities);
-        break;
-      case "price": {
-        const min = Number(draft.priceMinL) * LAKH;
-        const max = Number(draft.priceMaxL) * LAKH;
-        if (min > 0) sp.set("minPrice", String(min));
-        else sp.delete("minPrice");
-        if (max > 0) sp.set("maxPrice", String(max));
-        else sp.delete("maxPrice");
-        break;
-      }
-      case "more": {
-        setListParam(sp, "possessionStatus", draft.possessionStatus);
-        if (draft.areaMin) sp.set("minArea", draft.areaMin);
-        else sp.delete("minArea");
-        if (draft.areaMax) sp.set("maxArea", draft.areaMax);
-        else sp.delete("maxArea");
-        if (draft.builder) sp.set("builder", draft.builder);
-        else sp.delete("builder");
-        break;
-      }
-    }
-    router.push(`/search?${sp.toString()}`, { scroll: false });
-    setSheet(null);
-  }
-
-  function clearDraft() {
-    switch (sheet) {
-      case "type":
-        setDraft((d) => ({ ...d, propertyType: [] }));
-        break;
-      case "bedrooms":
-        setDraft((d) => ({ ...d, bedrooms: [] }));
-        break;
-      case "amenities":
-        setDraft((d) => ({ ...d, amenities: [] }));
-        break;
-      case "price":
-        setDraft((d) => ({ ...d, priceMinL: "", priceMaxL: "" }));
-        break;
-      case "more":
-        setDraft((d) => ({ ...d, possessionStatus: [], areaMin: "", areaMax: "", builder: "" }));
-        break;
-    }
-  }
-
-  function applySort(value: ProjectSort) {
-    const sp = new URLSearchParams(searchParams.toString());
-    if (value === "newest") sp.delete("sort");
-    else sp.set("sort", value);
-    sp.delete("featured");
-    router.push(`/search?${sp.toString()}`, { scroll: false });
-    setSheet(null);
-  }
-
-  function applyCity(slug: string) {
-    const sp = new URLSearchParams(searchParams.toString());
-    if (slug) sp.set("city", slug);
-    else sp.delete("city");
-    sp.delete("localityId");
-    router.push(`/search?${sp.toString()}`, { scroll: false });
-    setSheet(null);
-  }
-
-  function applyLocality(id: string) {
-    const sp = new URLSearchParams(searchParams.toString());
-    if (id) sp.set("localityId", id);
-    else sp.delete("localityId");
-    router.push(`/search?${sp.toString()}`, { scroll: false });
-    setSheet(null);
-  }
-
-  function toggleVerified() {
-    const sp = new URLSearchParams(searchParams.toString());
-    if (verified) sp.delete("verified");
-    else sp.set("verified", "true");
-    router.push(`/search?${sp.toString()}`, { scroll: false });
+  function applyFilters() {
+    const sp = new URLSearchParams();
+    if (q) sp.set("q", q);
+    if (selectedCity) sp.set("city", selectedCity);
+    const locIdParam = selectedLocalities[0];
+    if (locIdParam) sp.set("localityId", locIdParam);
+    if (selectedPropertyTypes.length) sp.set("propertyType", selectedPropertyTypes.join(","));
+    if (selectedBedrooms.length) sp.set("bedrooms", selectedBedrooms.join(","));
+    if (Number(budgetMin) > 0) sp.set("minPrice", String(Number(budgetMin) * 100000));
+    if (Number(budgetMax) < 500) sp.set("maxPrice", String(Number(budgetMax) * 100000));
+    if (selectedPossession.length) sp.set("possessionStatus", selectedPossession.join(","));
+    if (showReraOnly) sp.set("verifiedOnly", "true");
+    if (sort !== "newest") sp.set("sort", sort);
+    router.push(searchHref(sp));
   }
 
   function clearAllFilters() {
+    setSelectedCity("");
+    setSelectedLocalities([]);
+    setSelectedPropertyTypes([]);
+    setSelectedBedrooms([]);
+    setSelectedPossession([]);
+    setShowReraOnly(false);
+    setBudgetMin("0");
+    setBudgetMax("500");
+    router.push("/search");
+  }
+
+  function removeFilter(key: string, value?: string) {
     const sp = new URLSearchParams(searchParams.toString());
-    for (const key of [
-      "city", "localityId", "propertyType", "bedrooms", "minPrice", "maxPrice",
-      "minArea", "maxArea", "amenities", "builder", "possessionStatus", "verified", "sort", "featured",
-    ]) {
-      sp.delete(key);
+    if (key === "city") {
+      sp.delete("city");
+      setSelectedCity("");
+    } else if (key === "q") {
+      sp.delete("q");
+    } else if (key === "localityId") {
+      sp.delete("localityId");
+      setSelectedLocalities([]);
+    } else if (key === "propertyType" && value) {
+      const remaining = splitCsv(sp.get("propertyType")).filter((t) => t !== value);
+      if (remaining.length) sp.set("propertyType", remaining.join(","));
+      else sp.delete("propertyType");
+      setSelectedPropertyTypes(remaining);
+    } else if (key === "bedrooms") {
+      sp.delete("bedrooms");
+      setSelectedBedrooms([]);
+    } else if (key === "budget") {
+      sp.delete("minPrice");
+      sp.delete("maxPrice");
+      setBudgetMin("0");
+      setBudgetMax("500");
+    } else if (key === "verifiedOnly") {
+      sp.delete("verifiedOnly");
+      setShowReraOnly(false);
+    } else if (key === "possessionStatus" && value) {
+      const remaining = splitCsv(sp.get("possessionStatus")).filter((p) => p !== value);
+      if (remaining.length) sp.set("possessionStatus", remaining.join(","));
+      else sp.delete("possessionStatus");
+      setSelectedPossession(remaining);
     }
-    router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search", { scroll: false });
+    router.push(searchHref(sp));
   }
 
   const projects: PublicProjectSummary[] = data?.pages.flatMap((p) => p.data) ?? [];
   const total = data?.pages[0]?.meta.total ?? 0;
-  const showSkeleton = isLoading || (isFetching && isPlaceholderData);
-  const propertyTypeOnlyNonResidential =
-    propertyType.length > 0 && propertyType.every((t) => !RESIDENTIAL_TYPES.includes(t));
+  const limit = data?.pages[0]?.meta.limit ?? 10;
+  const currentPage = data?.pages.length ?? 1;
+  const showingFrom = projects.length > 0 ? 1 : 0;
+  const showingTo = Math.min(currentPage * limit, total);
 
-  const activeSortLabel = SORT_OPTIONS.find((s) => s.value === sort)?.label ?? "Sort";
-  const cityLabel = citiesData?.find((c) => c.slug === city)?.name ?? "";
-  const localityLabel = localitiesData?.find((l) => l.id === localityId)?.name ?? "";
-  const builderName = builder
-    ? buildersData?.find((b) => b.slug === builder)?.companyName ?? builder
-    : "";
-  const typeLabel = compactLabels(propertyType, PROPERTY_TYPES, "Type");
-  const bhkLabel = compactLabels(bedrooms, BEDROOM_OPTIONS, "BHK");
-  const priceLabel = formatPriceLabel(minPrice, maxPrice);
-  const amenityLabel =
-    amenities.length === 0 ? "Amenities" : `${amenities.length} amenit${amenities.length === 1 ? "y" : "ies"}`;
-  const moreCount = possessionStatus.length + (minArea || maxArea ? 1 : 0) + (builder ? 1 : 0);
-  const hasFilters = Boolean(
-    city || localityId || propertyType.length || bedrooms.length || minPrice || maxPrice ||
-    minArea || maxArea || amenities.length || builder || possessionStatus.length ||
-    verified || sort !== "newest",
-  );
-
-  const priceSliderMax = 600;
-  const priceSliderMin = Math.min(Number(draft.priceMinL) || 0, priceSliderMax);
-  const priceSliderMaxV = Math.max(Number(draft.priceMaxL) || priceSliderMax, priceSliderMin);
-  const areaSliderMin = Math.min(Number(draft.areaMin) || 0, 5000);
-  const areaSliderMaxV = Math.max(Number(draft.areaMax) || 5000, areaSliderMin);
-
-  function ApplyFooter() {
-    return (
-      <div className="flex items-center gap-3">
-        <button
-          onClick={clearDraft}
-          className="rounded-pill border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
-        >
-          Clear
-        </button>
-        <button
-          onClick={applyDraft}
-          disabled={counting}
-          className="flex flex-1 items-center justify-center gap-2 rounded-pill bg-accent px-5 py-3 text-sm font-semibold text-white shadow-accent-button transition-all duration-[150ms] ease-[var(--ease-spring)] hover:bg-accent-dark active:scale-[0.98] disabled:opacity-60"
-        >
-          {counting && (
-            <LoaderCircle size={16} strokeWidth={3} className="animate-spin-slow" aria-hidden />
-          )}
-          Show {liveCount === null ? "…" : `${liveCount}`} result{liveCount === 1 ? "" : "s"}
-        </button>
-      </div>
-    );
-  }
-
-  const optionButtonClass = (active: boolean) =>
-    `rounded-input border px-4 py-3 text-left text-sm font-medium transition-colors active:scale-[0.98] ${
-      active
-        ? "border-accent bg-accent-soft text-accent-dark"
-        : "border-slate-200 bg-surface text-slate-700 hover:border-accent/40 hover:text-accent"
-    }`;
+  const activeChips = useMemo(() => {
+    const chips: { key: string; label: string; value?: string }[] = [];
+    if (selectedCity) chips.push({ key: "city", label: cityName });
+    if (q) chips.push({ key: "q", label: `Search: ${q}` });
+    if (selectedLocalities.length) {
+      const locality = localitiesData?.find((item) => item.id === selectedLocalities[0]);
+      chips.push({ key: "localityId", label: locality?.name ?? "Selected locality" });
+    }
+    selectedPropertyTypes.forEach((pt) => {
+      const label = PROPERTY_TYPES.find((p) => p.val === pt)?.type ?? pt;
+      chips.push({ key: "propertyType", label, value: pt });
+    });
+    const budgetLabel = formatBudgetChip(budgetMin, budgetMax);
+    if (budgetLabel) chips.push({ key: "budget", label: budgetLabel });
+    if (selectedBedrooms.length) {
+      chips.push({ key: "bedrooms", label: `${selectedBedrooms.join(", ")} BHK` });
+    }
+    if (showReraOnly) chips.push({ key: "verifiedOnly", label: "RERA Verified" });
+    selectedPossession.forEach((p) => {
+      const label = POSSESSION_OPTIONS.find((o) => o.val === p)?.label ?? p;
+      chips.push({ key: "possessionStatus", label, value: p });
+    });
+    return chips;
+  }, [selectedCity, cityName, q, selectedLocalities, localitiesData, selectedPropertyTypes, budgetMin, budgetMax, selectedBedrooms, showReraOnly, selectedPossession]);
 
   return (
-    <div className="pb-24 md:pb-0">
-      <CollapsingSearchBar
-        cities={citiesData ?? []}
-        location={cityLabel || city}
-        initialQuery={q}
-        compact
-      />
+    <div className="min-h-screen bg-slate-50/50 pb-20">
+      {/* Top Search Hero Banner */}
+      <section className="relative overflow-hidden bg-ink-blue py-10 px-6 text-white">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-25"
+          style={{
+            backgroundImage: `url('https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=2000&q=80')`,
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-ink-blue/80 via-ink-blue/70 to-ink-blue/90" />
 
-      {/* Sticky filter bar — top value aligns with bottom of the search bar above */}
-      <div className="sticky top-[48px] z-30 border-b border-slate-100 bg-paper/95 backdrop-blur-md md:top-[144px]">
-        <div className="mx-auto max-w-6xl px-4">
-          <ChipRow className="py-2">
-            <Chip
-              label={activeSortLabel}
-              leading={<ListFilter size={14} aria-hidden />}
-              active={sort !== "newest"}
-              onClick={() => openSheet("sort")}
-            />
-            <Chip
-              label="Verified"
-              leading={
-                verified ? (
-                  <ShieldCheck size={14} aria-hidden />
-                ) : (
-                  <CircleCheck size={14} aria-hidden />
-                )
-              }
-              active={verified}
-              onClick={toggleVerified}
-            />
-            <Chip
-              label={cityLabel || "City"}
-              active={Boolean(city)}
-              onClick={() => openSheet("city")}
-            />
-            <Chip
-              label={localityLabel || "Locality"}
-              active={Boolean(localityId)}
-              disabled={!city}
-              onClick={() => openSheet("locality")}
-            />
-            <Chip
-              label={typeLabel}
-              active={propertyType.length > 0}
-              count={propertyType.length || undefined}
-              onClick={() => openSheet("type")}
-            />
-            <Chip
-              label={priceLabel}
-              active={Boolean(minPrice || maxPrice)}
-              onClick={() => openSheet("price")}
-            />
-            {!propertyTypeOnlyNonResidential && (
-              <Chip
-                label={bhkLabel}
-                active={bedrooms.length > 0}
-                count={bedrooms.length || undefined}
-                onClick={() => openSheet("bedrooms")}
-              />
-            )}
-            <Chip
-              label={amenityLabel}
-              active={amenities.length > 0}
-              count={amenities.length || undefined}
-              onClick={() => openSheet("amenities")}
-            />
-            <Chip
-              label="More"
-              active={moreCount > 0}
-              count={moreCount || undefined}
-              onClick={() => openSheet("more")}
-            />
-            {hasFilters && (
-              <button
-                onClick={clearAllFilters}
-                className="inline-flex shrink-0 items-center gap-1 rounded-pill px-4 py-2 text-sm font-semibold whitespace-nowrap text-danger transition-colors hover:bg-danger-soft"
-              >
-                <X size={14} strokeWidth={3} aria-hidden />
-                Clear all
-              </button>
-            )}
-          </ChipRow>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-6xl px-4 pt-4">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="min-w-0 truncate font-display text-xl font-semibold text-slate-900 md:text-2xl">
-            {q
-              ? `Results for "${q}"`
-              : city
-                ? `${cityLabel || city} projects`
-                : "All projects"}
+        <div className="relative mx-auto max-w-7xl">
+          <h1 className="font-display text-2xl font-bold md:text-3xl">
+            Find Your Perfect Property
           </h1>
-          {!showSkeleton && (
-            <p className="shrink-0 text-sm text-slate-400">
-              {total} result{total !== 1 ? "s" : ""}
-            </p>
-          )}
+          <p className="mt-1 text-sm text-white/80">
+            Verified projects. No brokers. Just better choices.
+          </p>
+
+          <div className="mt-6">
+            <HeroSearchCard
+              cities={citiesData ?? []}
+              showQuickFilters
+              compact
+              initialCity={city}
+              initialQuery={q}
+            />
+          </div>
         </div>
+      </section>
 
-        <p className="mt-3 text-xs font-medium text-success">
-          <span className="mr-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rating-gold/20 text-rating-gold">
-            <CircleCheck size={10} strokeWidth={3} aria-hidden />
-          </span>
-          Every listing is from a verified builder
-        </p>
-
-        {/* Results */}
-        <div className="mt-5">
-          {showSkeleton && <ListGridSkeleton count={6} />}
-
-          {!showSkeleton && isError && (
-            <div className="rounded-card border border-danger-soft bg-danger-soft p-6 text-sm text-danger">
-              Something went wrong while searching. Please try again.
-            </div>
-          )}
-
-          {!showSkeleton && !isError && projects.length === 0 && (
-            <div className="rounded-card bg-surface p-12 text-center shadow-card">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                <SearchX size={28} strokeWidth={2} aria-hidden />
-              </div>
-              <p className="mt-4 font-display text-lg font-semibold text-slate-900">
-                No projects match
-              </p>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-slate-400">
-                Try adjusting or removing some of your filters.
-              </p>
-              {hasFilters && (
+      {/* Main Dual-Column Content */}
+      <div className="mx-auto max-w-7xl px-6 pt-8">
+        <div className="flex flex-col gap-8 lg:flex-row">
+          {/* Left Sidebar Filters */}
+          <aside className="w-full shrink-0 lg:w-72">
+            <div className="sticky top-24 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 className="text-base font-bold text-slate-900">Filters</h2>
                 <button
                   onClick={clearAllFilters}
-                  className="mt-5 inline-flex items-center gap-1.5 rounded-pill bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-accent-button transition-colors hover:bg-accent-dark"
+                  className="text-xs font-semibold text-accent hover:underline"
                 >
-                  <X size={14} strokeWidth={3} aria-hidden />
-                  Clear all filters
+                  Clear All
                 </button>
-              )}
-            </div>
-          )}
+              </div>
 
-          {!showSkeleton && !isError && projects.length > 0 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project, i) => (
-                <ProjectCard key={project.slug} project={project} index={i} />
-              ))}
-            </div>
-          )}
+              {/* City Filter */}
+              <div className="mt-4">
+                <label className="text-xs font-bold text-slate-700">City</label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => {
+                    setSelectedCity(e.target.value);
+                    setSelectedLocalities([]);
+                  }}
+                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs font-semibold text-slate-800 outline-none"
+                >
+                  <option value="">All cities</option>
+                  {citiesData?.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.name}
+                    </option>
+                  )) ?? <option value="mumbai">Mumbai</option>}
+                </select>
+              </div>
 
-          {hasNextPage && !showSkeleton && (
-            <div className="mt-8 flex justify-center">
+              {/* Locality Checkboxes */}
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <label className="text-xs font-bold text-slate-700">Locality</label>
+                <div className="mt-2 max-h-40 space-y-2 overflow-y-auto text-xs text-slate-600">
+                  {(localitiesData ?? []).slice(0, 8).map((loc) => (
+                    <label key={loc.id} className="flex cursor-pointer items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedLocalities.includes(loc.id)}
+                          onChange={() => {
+                            if (selectedLocalities.includes(loc.id)) {
+                              setSelectedLocalities([]);
+                            } else {
+                              setSelectedLocalities([loc.id]);
+                            }
+                          }}
+                          className="rounded text-accent focus:ring-accent"
+                        />
+                        <span>{loc.name}</span>
+                      </div>
+                    </label>
+                  ))}
+                  {!localitiesData?.length && (
+                    <p className="text-[11px] text-slate-400">Select a city to see localities</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Property Type Checkboxes */}
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <label className="text-xs font-bold text-slate-700">Property Type</label>
+                <div className="mt-2 space-y-2 text-xs text-slate-600">
+                  {PROPERTY_TYPES.map((pt) => (
+                    <label key={pt.val} className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedPropertyTypes.includes(pt.val)}
+                        onChange={() => {
+                          if (selectedPropertyTypes.includes(pt.val)) {
+                            setSelectedPropertyTypes(selectedPropertyTypes.filter((t) => t !== pt.val));
+                          } else {
+                            setSelectedPropertyTypes([...selectedPropertyTypes, pt.val]);
+                          }
+                        }}
+                        className="rounded text-accent focus:ring-accent"
+                      />
+                      <span>{pt.type}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Budget Range */}
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <label className="text-xs font-bold text-slate-700">Budget (₹)</label>
+                <div className="mt-2 flex items-center gap-2 text-xs">
+                  <input
+                    type="text"
+                    value={`₹ ${budgetMin}L`}
+                    onChange={(e) => setBudgetMin(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="w-full rounded border border-slate-200 bg-slate-50 p-1.5 text-center text-xs font-semibold text-slate-800"
+                  />
+                  <span className="text-slate-400">-</span>
+                  <input
+                    type="text"
+                    value={Number(budgetMax) >= 500 ? "₹ 5 Cr+" : `₹ ${budgetMax}L`}
+                    onChange={(e) => setBudgetMax(e.target.value.replace(/[^0-9]/g, "") || "500")}
+                    className="w-full rounded border border-slate-200 bg-slate-50 p-1.5 text-center text-xs font-semibold text-slate-800"
+                  />
+                </div>
+              </div>
+
+              {/* BHK Pills */}
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <label className="text-xs font-bold text-slate-700">BHK</label>
+                <div className="mt-2 flex items-center gap-2">
+                  {["1", "2", "3", "4+"].map((bhk) => (
+                    <button
+                      key={bhk}
+                      type="button"
+                      onClick={() => {
+                        if (selectedBedrooms.includes(bhk)) {
+                          setSelectedBedrooms(selectedBedrooms.filter((b) => b !== bhk));
+                        } else {
+                          setSelectedBedrooms([...selectedBedrooms, bhk]);
+                        }
+                      }}
+                      className={`flex-1 rounded-lg border py-2 text-center text-xs font-bold transition-colors ${
+                        selectedBedrooms.includes(bhk)
+                          ? "border-ink-blue bg-ink-blue text-white"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      {bhk}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Possession Checkboxes */}
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <label className="text-xs font-bold text-slate-700">Possession</label>
+                <div className="mt-2 space-y-2 text-xs text-slate-600">
+                  {POSSESSION_OPTIONS.map((pos) => (
+                    <label key={pos.val} className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedPossession.includes(pos.val)}
+                        onChange={() => {
+                          if (selectedPossession.includes(pos.val)) {
+                            setSelectedPossession(selectedPossession.filter((p) => p !== pos.val));
+                          } else {
+                            setSelectedPossession([...selectedPossession, pos.val]);
+                          }
+                        }}
+                        className="rounded text-accent focus:ring-accent"
+                      />
+                      <span>{pos.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* RERA Verified Toggle */}
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={showReraOnly}
+                    onChange={(e) => setShowReraOnly(e.target.checked)}
+                    className="rounded text-accent focus:ring-accent"
+                  />
+                  <span>Show only RERA verified</span>
+                </label>
+              </div>
+
               <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="inline-flex items-center gap-2 rounded-pill border border-slate-200 bg-surface px-6 py-3 text-sm font-medium text-slate-700 transition-all duration-[150ms] ease-[var(--ease-spring)] hover:border-accent/40 active:scale-[0.97] disabled:opacity-60"
+                onClick={applyFilters}
+                className="mt-6 w-full rounded-lg bg-ink-blue py-3 text-xs font-bold text-white shadow transition-colors hover:bg-ink-blue/90"
               >
-                {isFetchingNextPage ? (
-                  <>
-                    <LoaderCircle
-                      className="animate-spin-slow"
-                      size={16}
-                      strokeWidth={3}
-                      aria-hidden
-                    />
-                    Loading…
-                  </>
-                ) : (
-                  "Load more projects"
-                )}
+                Apply Filters
               </button>
             </div>
-          )}
-        </div>
-      </div>
+          </aside>
 
-      {/* Sort sheet */}
-      <BottomSheet open={sheet === "sort"} onClose={() => setSheet(null)} title="Sort by">
-        <div className="flex flex-col gap-1 pb-4">
-          {SORT_OPTIONS.map((s) => {
-            const active = sort === s.value;
-            return (
-              <button
-                key={s.value}
-                onClick={() => applySort(s.value)}
-                className={`flex items-center justify-between rounded-input px-4 py-3 text-left text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-accent-soft text-accent-dark"
-                    : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {s.label}
-                {active && (
-                  <Check size={18} strokeWidth={2.5} className="text-accent" aria-hidden />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </BottomSheet>
+          {/* Right Results Column */}
+          <main className="flex-1">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-lg font-bold text-slate-900">
+                {total} properties in {cityName}
+              </h2>
 
-      {/* City sheet */}
-      <BottomSheet open={sheet === "city"} onClose={() => setSheet(null)} title="City">
-        <div className="flex flex-col gap-1 pb-4">
-          <button
-            onClick={() => applyCity("")}
-            className={`flex items-center justify-between rounded-input px-4 py-3 text-left text-sm font-medium transition-colors ${
-              city === "" ? "bg-accent-soft text-accent-dark" : "text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            All cities
-            {city === "" && (
-              <Check size={18} strokeWidth={2.5} className="text-accent" aria-hidden />
-            )}
-          </button>
-          {(citiesData ?? []).map((c) => (
-            <button
-              key={c.id}
-              onClick={() => applyCity(c.slug)}
-              className={`flex items-center justify-between rounded-input px-4 py-3 text-left text-sm font-medium transition-colors ${
-                city === c.slug ? "bg-accent-soft text-accent-dark" : "text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              {c.name}
-              {city === c.slug && (
-                <Check size={18} strokeWidth={2.5} className="text-accent" aria-hidden />
-              )}
-            </button>
-          ))}
-        </div>
-      </BottomSheet>
-
-      {/* Locality sheet */}
-      <BottomSheet
-        open={sheet === "locality"}
-        onClose={() => setSheet(null)}
-        title="Locality"
-        subtitle={city ? `Localities in ${cityLabel || city}` : "Pick a city first"}
-      >
-        {!city ? (
-          <p className="py-10 text-center text-sm text-slate-400">
-            Select a city to browse localities.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-1 pb-4">
-            <button
-              onClick={() => applyLocality("")}
-              className={`flex items-center justify-between rounded-input px-4 py-3 text-left text-sm font-medium transition-colors ${
-                localityId === ""
-                  ? "bg-accent-soft text-accent-dark"
-                  : "text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              All localities
-              {localityId === "" && (
-                <Check size={18} strokeWidth={2.5} className="text-accent" aria-hidden />
-              )}
-            </button>
-            {(localitiesData ?? []).map((l) => (
-              <button
-                key={l.id}
-                onClick={() => applyLocality(l.id)}
-                className={`flex items-center justify-between rounded-input px-4 py-3 text-left text-sm font-medium transition-colors ${
-                  localityId === l.id
-                    ? "bg-accent-soft text-accent-dark"
-                    : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {l.name}
-                {localityId === l.id && (
-                  <Check size={18} strokeWidth={2.5} className="text-accent" aria-hidden />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </BottomSheet>
-
-      {/* Property type sheet */}
-      <BottomSheet
-        open={sheet === "type"}
-        onClose={() => setSheet(null)}
-        title="Property type"
-        subtitle="Select one or more"
-        footer={<ApplyFooter />}
-      >
-        <div className="grid grid-cols-2 gap-2 pb-4">
-          {PROPERTY_TYPES.map((t) => {
-            const active = draft.propertyType.includes(t.value);
-            return (
-              <button
-                key={t.value}
-                onClick={() => toggleDraftList("propertyType", t.value)}
-                aria-pressed={active}
-                className={optionButtonClass(active)}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </BottomSheet>
-
-      {/* Bedrooms sheet */}
-      <BottomSheet
-        open={sheet === "bedrooms"}
-        onClose={() => setSheet(null)}
-        title="Bedrooms"
-        subtitle="Select one or more"
-        footer={<ApplyFooter />}
-      >
-        <div className="grid grid-cols-2 gap-2 pb-4">
-          {BEDROOM_OPTIONS.map((b) => {
-            const active = draft.bedrooms.includes(b.value);
-            return (
-              <button
-                key={b.value}
-                onClick={() => toggleDraftList("bedrooms", b.value)}
-                aria-pressed={active}
-                className={optionButtonClass(active)}
-              >
-                {b.label}
-              </button>
-            );
-          })}
-        </div>
-      </BottomSheet>
-
-      {/* Price sheet */}
-      <BottomSheet
-        open={sheet === "price"}
-        onClose={() => setSheet(null)}
-        title="Price range"
-        subtitle="Budget in lakhs (₹)"
-        footer={<ApplyFooter />}
-      >
-        <div className="pb-4">
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-600">Min price</span>
-              <input
-                type="number"
-                min={0}
-                inputMode="numeric"
-                value={draft.priceMinL}
-                onChange={(e) => setDraft((d) => ({ ...d, priceMinL: onlyDigits(e.target.value) }))}
-                placeholder="e.g. 20"
-                className="w-full rounded-input border border-slate-200 bg-surface px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-accent-soft"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-600">Max price</span>
-              <input
-                type="number"
-                min={0}
-                inputMode="numeric"
-                value={draft.priceMaxL}
-                onChange={(e) => setDraft((d) => ({ ...d, priceMaxL: onlyDigits(e.target.value) }))}
-                placeholder="e.g. 80"
-                className="w-full rounded-input border border-slate-200 bg-surface px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-accent-soft"
-              />
-            </label>
-          </div>
-          <div className="mt-6 px-1">
-            <RangeSlider
-              min={0}
-              max={priceSliderMax}
-              step={5}
-              valueMin={priceSliderMin}
-              valueMax={priceSliderMaxV}
-              onMin={(v) => setDraft((d) => ({ ...d, priceMinL: String(v) }))}
-              onMax={(v) => setDraft((d) => ({ ...d, priceMaxL: String(v) }))}
-            />
-            <div className="mt-1 flex justify-between text-xs text-slate-400">
-              <span>₹0L</span>
-              <span>₹{priceSliderMax}L</span>
-            </div>
-          </div>
-          <p className="mt-4 text-xs text-slate-400">
-            Leave a field blank for "no limit" on that end.
-          </p>
-        </div>
-      </BottomSheet>
-
-      {/* Amenities sheet */}
-      <BottomSheet
-        open={sheet === "amenities"}
-        onClose={() => setSheet(null)}
-        title="Amenities"
-        subtitle="Every selected amenity must be present"
-        footer={<ApplyFooter />}
-      >
-        <div className="flex flex-wrap gap-2 pb-4">
-          {(amenitiesData ?? []).map((a) => {
-            const active = draft.amenities.includes(String(a.id));
-            return (
-              <button
-                key={a.id}
-                onClick={() => toggleDraftList("amenities", String(a.id))}
-                aria-pressed={active}
-                className={`rounded-pill border px-4 py-2 text-sm font-medium transition-all duration-[150ms] ease-[var(--ease-spring)] active:scale-[0.97] ${
-                  active
-                    ? "border-accent bg-accent text-white shadow-accent-button"
-                    : "border-slate-200 bg-surface text-slate-600 hover:border-accent/40"
-                }`}
-              >
-                <AmenityIcon icon={a.icon} size={14} className="mr-1.5" />
-                {a.name}
-              </button>
-            );
-          })}
-          {(amenitiesData ?? []).length === 0 && (
-            <p className="w-full py-8 text-center text-sm text-slate-400">No amenities available</p>
-          )}
-        </div>
-      </BottomSheet>
-
-      {/* More sheet */}
-      <BottomSheet
-        open={sheet === "more"}
-        onClose={() => setSheet(null)}
-        title="More filters"
-        footer={<ApplyFooter />}
-      >
-        <div className="space-y-7 pb-4">
-          <section>
-            <h3 className="mb-2 text-sm font-semibold text-slate-900">Possession status</h3>
-            <div className="flex flex-wrap gap-2">
-              {POSSESSION_STATUSES.map((s) => {
-                const active = draft.possessionStatus.includes(s.value);
-                return (
-                  <button
-                    key={s.value}
-                    onClick={() => toggleDraftList("possessionStatus", s.value)}
-                    aria-pressed={active}
-                    className={optionButtonClass(active)}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <span>Sort by:</span>
+                  <select
+                    value={sort}
+                    onChange={(e) => {
+                      const sp = new URLSearchParams(searchParams.toString());
+                      sp.set("sort", e.target.value);
+                      router.push(`/search?${sp.toString()}`);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 outline-none"
                   >
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+                    <option value="newest">Newest First</option>
+                    <option value="price_asc">Price: Low to High</option>
+                    <option value="price_desc">Price: High to Low</option>
+                    <option value="featured">Featured</option>
+                  </select>
+                </div>
 
-          <section>
-            <h3 className="mb-2 text-sm font-semibold text-slate-900">Carpet area</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-600">Min (sqft)</span>
-                <input
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
-                  value={draft.areaMin}
-                  onChange={(e) => setDraft((d) => ({ ...d, areaMin: onlyDigits(e.target.value) }))}
-                  placeholder="e.g. 1000"
-                  className="w-full rounded-input border border-slate-200 bg-surface px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-accent-soft"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-600">Max (sqft)</span>
-                <input
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
-                  value={draft.areaMax}
-                  onChange={(e) => setDraft((d) => ({ ...d, areaMax: onlyDigits(e.target.value) }))}
-                  placeholder="e.g. 2000"
-                  className="w-full rounded-input border border-slate-200 bg-surface px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-accent-soft"
-                />
-              </label>
-            </div>
-            <div className="mt-6 px-1">
-              <RangeSlider
-                min={0}
-                max={5000}
-                step={50}
-                valueMin={areaSliderMin}
-                valueMax={areaSliderMaxV}
-                onMin={(v) => setDraft((d) => ({ ...d, areaMin: String(v) }))}
-                onMax={(v) => setDraft((d) => ({ ...d, areaMax: String(v) }))}
-              />
-              <div className="mt-1 flex justify-between text-xs text-slate-400">
-                <span>0 sqft</span>
-                <span>5,000 sqft</span>
+                <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    aria-label="Grid view"
+                    className={`rounded p-1.5 ${viewMode === "grid" ? "bg-slate-100 text-slate-900" : "text-slate-400"}`}
+                  >
+                    <Grid size={16} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("list")}
+                    aria-label="List view"
+                    className={`rounded p-1.5 ${viewMode === "list" ? "bg-slate-100 text-slate-900" : "text-slate-400"}`}
+                  >
+                    <List size={16} />
+                  </button>
+                </div>
               </div>
             </div>
-          </section>
 
-          <section>
-            <h3 className="mb-2 text-sm font-semibold text-slate-900">Builder</h3>
-            <div className="flex flex-col gap-1">
-              <button
-                onClick={() => setDraft((d) => ({ ...d, builder: "" }))}
-                className={`flex items-center gap-3 rounded-input px-4 py-3 text-left text-sm font-medium transition-colors ${
-                  draft.builder === ""
-                    ? "bg-accent-soft text-accent-dark"
-                    : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                  <Building2 size={16} aria-hidden />
-                </span>
-                All builders
-                {draft.builder === "" && (
-                  <Check size={18} strokeWidth={2.5} className="ml-auto text-accent" aria-hidden />
-                )}
-              </button>
-              {(buildersData ?? []).map((b) => (
+            {/* Active Filter Tags Strip */}
+            {activeChips.length > 0 && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {activeChips.map((chip) => (
+                  <span
+                    key={`${chip.key}-${chip.value ?? chip.label}`}
+                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-ink-blue"
+                  >
+                    {chip.label}
+                    <button
+                      type="button"
+                      onClick={() => removeFilter(chip.key, chip.value)}
+                      aria-label={`Remove ${chip.label} filter`}
+                    >
+                      <X size={12} className="cursor-pointer" />
+                    </button>
+                  </span>
+                ))}
                 <button
-                  key={b.id}
-                  onClick={() => setDraft((d) => ({ ...d, builder: b.slug }))}
-                  className={`flex items-center gap-3 rounded-input px-4 py-3 text-left text-sm font-medium transition-colors ${
-                    draft.builder === b.slug
-                      ? "bg-accent-soft text-accent-dark"
-                      : "text-slate-700 hover:bg-slate-50"
-                  }`}
+                  onClick={clearAllFilters}
+                  className="text-xs font-semibold text-accent hover:underline"
                 >
-                  {b.logo ? (
-                    <img
-                      src={fileUrl(b.logo) ?? ""}
-                      alt=""
-                      className="h-8 w-8 shrink-0 rounded-full bg-surface object-contain"
-                    />
-                  ) : (
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink-blue text-xs font-bold text-white">
-                      {b.companyName.charAt(0)}
-                    </span>
-                  )}
-                  {b.companyName}
-                  {draft.builder === b.slug && (
-                    <Check size={18} strokeWidth={2.5} className="ml-auto text-accent" aria-hidden />
-                  )}
+                  Clear All
                 </button>
-              ))}
-              {(buildersData ?? []).length === 0 && (
-                <p className="w-full py-8 text-center text-sm text-slate-400">No builders available</p>
+              </div>
+            )}
+
+            {/* Project Results */}
+            <div className="mt-6">
+              {isLoading && <ListGridSkeleton count={6} />}
+
+              {!isLoading && projects.length === 0 && (
+                <div className="rounded-xl border border-slate-100 bg-white p-12 text-center shadow-sm">
+                  <SearchX size={36} className="mx-auto text-slate-400" />
+                  <p className="mt-4 text-lg font-bold text-slate-900">No properties match your filters</p>
+                  <p className="mt-1 text-xs text-slate-500">Try adjusting your budget, BHK or locality filter.</p>
+                  <button
+                    onClick={clearAllFilters}
+                    className="mt-4 rounded-lg bg-accent px-5 py-2.5 text-xs font-bold text-white shadow"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
+
+              {!isLoading && projects.length > 0 && (
+                <div className={viewMode === "grid" ? "grid grid-cols-1 gap-6 sm:grid-cols-2" : "space-y-4"}>
+                  {projects.map((project) =>
+                    viewMode === "grid" ? (
+                      <ProjectCard key={project.slug} project={project} />
+                    ) : (
+                      <HorizontalProjectCard key={project.slug} project={project} />
+                    ),
+                  )}
+                </div>
               )}
             </div>
-          </section>
+
+            {/* Pagination / Load More */}
+            {projects.length > 0 && (
+              <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-6 sm:flex-row">
+                {hasNextPage ? (
+                  <button
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="rounded-lg border border-slate-200 bg-white px-6 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {isFetchingNextPage ? "Loading..." : "Load More Properties"}
+                  </button>
+                ) : (
+                  <p className="text-xs text-slate-400">All results loaded</p>
+                )}
+                <p className="text-xs text-slate-500">
+                  Showing {showingFrom}-{showingTo} of {total} properties
+                </p>
+              </div>
+            )}
+
+            {/* Recommendation CTA Banner */}
+            <div className="mt-10 flex flex-col items-start justify-between gap-4 rounded-2xl bg-ink-blue p-6 text-white md:flex-row md:items-center">
+              <div>
+                <p className="text-base font-bold">Can&apos;t find what you&apos;re looking for?</p>
+                <p className="mt-0.5 text-xs text-white/70">
+                  Get personalized property recommendations from verified builders.
+                </p>
+              </div>
+              <button className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-accent-dark">
+                Get Property Alerts <ArrowRight size={14} />
+              </button>
+            </div>
+          </main>
         </div>
-      </BottomSheet>
+      </div>
     </div>
   );
 }
 
 export default function SearchPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="mx-auto max-w-6xl px-4 pt-8">
-          <div className="h-14 w-full rounded-pill bg-slate-100" />
-          <div className="mt-6 h-8 w-40 bg-slate-100" />
-          <div className="mt-6">
-            <ListGridSkeleton count={6} />
-          </div>
-        </div>
-      }
-    >
-      <SearchPageInner />
+    <Suspense fallback={<ListGridSkeleton count={6} />}>
+      <SearchPageContent />
     </Suspense>
   );
 }

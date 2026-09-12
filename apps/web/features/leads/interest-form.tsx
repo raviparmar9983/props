@@ -7,7 +7,6 @@ import { useAuth } from "../../lib/hooks";
 import { setPendingAction, consumePendingAction } from "../../lib/pendingAction";
 import { useAuthSheet } from "../../lib/auth-sheet-store";
 import { CircleCheck, LoaderCircle, Plus } from "lucide-react";
-import { PillButton } from "../../components/pill-button";
 
 export interface UnitOption {
   id: string;
@@ -32,10 +31,14 @@ export function InterestForm({
 }: InterestFormProps) {
   const { isAuthenticated } = useAuth();
   const openAuth = useAuthSheet((s) => s.openSheet);
-  const [selectedUnitId, setSelectedUnitId] = useState("");
-  const [message, setMessage] = useState("");
+  const [selectedUnitId, setSelectedUnitId] = useState(unitTypes?.[0]?.id ?? "");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("I'm interested in this property...");
+  const [agreed, setAgreed] = useState(true);
   const [status, setStatus] = useState<SubmitStatus>("idle");
   const [waitingForAuth, setWaitingForAuth] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const submitLead = useMutation({
     mutationFn: () => {
@@ -43,9 +46,13 @@ export function InterestForm({
         projectId: string;
         unitTypeId?: string;
         message?: string;
+        contactName?: string;
+        contactPhone?: string;
       } = { projectId };
       if (selectedUnitId) payload.unitTypeId = selectedUnitId;
       if (message.trim()) payload.message = message.trim();
+      if (name.trim()) payload.contactName = name.trim();
+      if (phone.trim()) payload.contactPhone = phone.trim();
       return leadsApi.submit(payload);
     },
     onSuccess: (data: { duplicate?: boolean }) => {
@@ -68,7 +75,16 @@ export function InterestForm({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (status === "sending") return;
+    if (status === "sending" || !agreed) return;
+    if (name.trim().length < 2) {
+      setFormError("Enter your name so the builder knows who to contact.");
+      return;
+    }
+    if (!/^[+()\-\s0-9]{7,24}$/.test(phone.trim())) {
+      setFormError("Enter a valid phone number for the builder to contact you.");
+      return;
+    }
+    setFormError(null);
 
     if (!isAuthenticated) {
       const pending: {
@@ -91,21 +107,13 @@ export function InterestForm({
 
   if (status === "duplicate") {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-card bg-info-soft px-5 py-8 text-center">
-        <span className="animate-pop-in flex h-14 w-14 items-center justify-center rounded-full bg-info/10">
-          <Plus
-            size={28}
-            strokeWidth={2.5}
-            className="text-info"
-            aria-hidden
-          />
+      <div className="flex flex-col items-center gap-2 rounded-xl bg-blue-50 p-6 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-ink-blue">
+          <Plus size={24} />
         </span>
-        <p className="font-display text-lg font-semibold">
-          Interest already submitted
-        </p>
-        <p className="text-sm text-slate-500">
-          You've already expressed interest in this project.{" "}
-          {builderName ?? "The builder"} will reach out to you shortly.
+        <p className="font-bold text-base text-slate-900">Interest Already Submitted</p>
+        <p className="text-xs text-slate-500">
+          You&apos;ve already requested details for this property. {builderName ?? "Nova Estates"} will reach out to you shortly.
         </p>
       </div>
     );
@@ -113,100 +121,111 @@ export function InterestForm({
 
   if (status === "sent") {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-card bg-success-soft px-5 py-8 text-center">
-        <span className="animate-pop-in flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
-          <CircleCheck
-            size={28}
-            strokeWidth={2.5}
-            className="text-success"
-            aria-hidden
-          />
+      <div className="flex flex-col items-center gap-2 rounded-xl bg-emerald-50 p-6 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+          <CircleCheck size={24} />
         </span>
-        <p className="font-display text-lg font-semibold text-success">
-          Interest sent
-        </p>
-        <p className="text-sm text-slate-500">
-          {builderName ?? "The builder"} will reach out to you shortly.
+        <p className="font-bold text-base text-emerald-700">Interest Sent</p>
+        <p className="text-xs text-slate-500">
+          {builderName ?? "Nova Estates"} will reach out to you shortly.
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {unitTypes && unitTypes.length > 0 && (
-        <div>
-          <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase">
-            Interested in
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {unitTypes.map((ut) => {
-              const active = selectedUnitId === ut.id;
-              return (
-                <button
-                  key={ut.id}
-                  type="button"
-                  onClick={() => setSelectedUnitId(active ? "" : ut.id)}
-                  aria-pressed={active}
-                  className={`rounded-pill border px-3.5 py-2 text-sm font-medium transition-all duration-[150ms] ease-[var(--ease-spring)] active:scale-[0.97] ${
-                    active
-                      ? "border-accent bg-accent text-white shadow-accent-button"
-                      : "border-slate-200 bg-surface text-slate-600 hover:border-accent/40"
-                  }`}
-                >
-                  {ut.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
+    <form onSubmit={handleSubmit} className="space-y-3 text-slate-900">
+      {/* Unit Dropdown */}
       <div>
-        <label
-          htmlFor="interest-message"
-          className="mb-1.5 block text-xs font-semibold tracking-wide text-slate-400 uppercase"
-        >
-          Message (optional)
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          INTERESTED IN
         </label>
-        <textarea
-          id="interest-message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Any specific requirements or questions?"
-          rows={3}
-          className="w-full resize-none rounded-input border border-slate-200 bg-surface px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-accent-soft"
+        <select
+          value={selectedUnitId}
+          onChange={(e) => setSelectedUnitId(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs font-semibold outline-none focus:border-accent"
+        >
+          {unitTypes && unitTypes.length > 0 ? (
+            unitTypes.map((ut) => (
+              <option key={ut.id} value={ut.id}>
+                {ut.label}
+              </option>
+            ))
+          ) : (
+            <option value="">Corner Plot</option>
+          )}
+        </select>
+      </div>
+
+      {/* Name Input */}
+      <div>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your Name"
+          autoComplete="name"
+          required
+          minLength={2}
+          className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs outline-none focus:border-accent focus:bg-white"
         />
       </div>
 
-      <PillButton
+      {/* Phone Input */}
+      <div>
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Your Phone Number"
+          autoComplete="tel"
+          inputMode="tel"
+          required
+          className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs outline-none focus:border-accent focus:bg-white"
+        />
+      </div>
+
+      {/* Message Textarea */}
+      <div>
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows={3}
+          className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs outline-none focus:border-accent focus:bg-white resize-none"
+        />
+      </div>
+
+      {/* Agreement Checkbox */}
+      <label className="flex items-start gap-2 text-[11px] text-slate-500 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          className="mt-0.5 rounded text-accent focus:ring-accent"
+        />
+        <span>I agree to be contacted by {builderName ?? "Nova Estates"}.</span>
+      </label>
+
+      {formError && <p className="text-xs font-medium text-danger" role="alert">{formError}</p>}
+
+      {/* Submit Button */}
+      <button
         type="submit"
-        full
-        size="lg"
-        disabled={status === "sending"}
+        disabled={status === "sending" || !agreed}
+        className="w-full rounded-lg bg-accent py-3 text-xs font-bold text-white shadow transition-colors hover:bg-accent-dark disabled:opacity-50"
       >
         {status === "sending" ? (
-          <>
-            <LoaderCircle
-              size={18}
-              strokeWidth={3}
-              className="animate-spin-slow"
-              aria-hidden
-            />
-            Sending…
-          </>
+          <span className="flex items-center justify-center gap-2">
+            <LoaderCircle size={16} className="animate-spin" />
+            Sending...
+          </span>
         ) : (
           "Contact Builder"
         )}
-      </PillButton>
+      </button>
 
-      {submitLead.isError && (
-        <p className="text-center text-sm text-danger">
-          Could not submit your interest. Please try again.
-        </p>
-      )}
-      <p className="text-center text-xs text-slate-400">
-        No spam, no calls from brokers — only {builderName ?? "the builder"}.
+      <p className="text-center text-[10px] text-slate-400">
+        No spam, no calls from brokers — only {builderName ?? "Nova Estates"}.
       </p>
     </form>
   );

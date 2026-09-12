@@ -564,6 +564,7 @@ export function newLeadEmail(
   projectTitle: string,
   customerName: string,
   customerEmail: string,
+  customerPhone: string | undefined,
   interest: string,
   leadId?: string,
   timestamp?: string,
@@ -606,6 +607,7 @@ export function newLeadEmail(
               ${infoRow("Project", projectTitle)}
               ${infoRow("Name", customerName)}
               ${infoRow("Email", customerEmail)}
+              ${customerPhone ? infoRow("Phone", customerPhone) : ""}
               ${infoRow("Interest", interest)}
               ${formattedTime ? infoRow("Submitted", formattedTime) : ""}
             </table>

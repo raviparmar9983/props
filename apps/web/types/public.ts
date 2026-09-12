@@ -15,6 +15,9 @@ export interface PublicProjectSummary {
   media: string[];
   status: string;
   isFeatured: boolean;
+  reraProjectNumber?: string | null;
+  possessionDate?: string | null;
+  unitTypes?: UnitTypeSummary[];
 }
 
 export interface PublicProjectDetail {
@@ -86,6 +89,7 @@ export interface UnitTypeSummary {
   id: string;
   propertyType: string;
   label: string;
+  bedrooms?: number | null;
   towerId: string | null;
   tower: { id: string; name: string } | null;
   carpetArea: number | null;
