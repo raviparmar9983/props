@@ -7,12 +7,17 @@ export { savedPropertiesApi } from "./savedProperties";
 export { notificationsApi } from "./notifications";
 export {
   searchProjects,
+  searchProjectsClient,
   getProjectBySlug,
   getProjectContact,
   getCities,
+  getCitiesClient,
   getLocalities,
+  getLocalitiesClient,
   getAmenities,
+  getAmenitiesClient,
   getBuilders,
+  getBuildersClient,
   getBuilderBySlug,
   getPublicStats,
   getAllProjectSlugs,

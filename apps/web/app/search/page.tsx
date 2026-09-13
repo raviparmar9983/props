@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useCallback, Suspense } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
-  searchProjects,
-  getCities,
-  getLocalities,
-  getAmenities,
-  getBuilders,
+  searchProjectsClient as searchProjects,
+  getCitiesClient as getCities,
+  getLocalitiesClient as getLocalities,
+  getAmenitiesClient as getAmenities,
+  getBuildersClient as getBuilders,
 } from "../../lib/api";
 import type { ProjectSearchParams, ProjectSort } from "../../lib/api/publicProjects";
 import { ProjectCard } from "../../components/project-card";

@@ -84,6 +84,15 @@ export async function getProjectBySlug(slug: string) {
   }
 }
 
+export function searchProjectsClient(params: ProjectSearchParams) {
+  const qs = buildQueryString(params);
+  return apiClient
+    .get<SearchResponse<PublicProjectSummary>>(
+      `/public/projects${qs ? `?${qs}` : ""}`,
+    )
+    .then((r) => r.data);
+}
+
 export async function getProjectContact(slug: string) {
   const { data } = await apiClient.get<ProjectContact>(
     `/public/projects/${slug}/contact`,
@@ -95,6 +104,10 @@ export function getCities() {
   return serverFetch<City[]>("/public/cities", { revalidate: 86400 });
 }
 
+export function getCitiesClient() {
+  return apiClient.get<City[]>("/public/cities").then((r) => r.data);
+}
+
 export function getLocalities(cityId: string) {
   return serverFetch<Locality[]>(
     `/public/localities?cityId=${cityId}`,
@@ -102,12 +115,26 @@ export function getLocalities(cityId: string) {
   );
 }
 
+export function getLocalitiesClient(cityId: string) {
+  return apiClient
+    .get<Locality[]>(`/public/localities?cityId=${cityId}`)
+    .then((r) => r.data);
+}
+
 export function getAmenities() {
   return serverFetch<Amenity[]>("/public/amenities", { revalidate: 86400 });
 }
 
+export function getAmenitiesClient() {
+  return apiClient.get<Amenity[]>("/public/amenities").then((r) => r.data);
+}
+
 export function getBuilders() {
   return serverFetch<PublicBuilder[]>("/public/builders", { revalidate: 300 });
+}
+
+export function getBuildersClient() {
+  return apiClient.get<PublicBuilder[]>("/public/builders").then((r) => r.data);
 }
 
 export async function getBuilderBySlug(slug: string) {
