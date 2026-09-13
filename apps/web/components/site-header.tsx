@@ -20,7 +20,7 @@ export function SiteHeader() {
   const { isAuthenticated } = useAuth();
   const { data: savedData } = useSavedProperties();
   const openAuth = useAuthSheet((state) => state.openSheet);
-  const builderUrl = process.env.NEXT_PUBLIC_BUILDER_APP_URL ?? "http://localhost:5173";
+  const builderUrl = process.env.NEXT_PUBLIC_BUILDER_APP_URL ?? "https://builder.propertieswale.in";
   const savedCount = savedData?.data.length ?? 0;
 
   return (

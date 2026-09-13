@@ -3,6 +3,10 @@ import { BrandMark } from "./brand-mark";
 import { FooterNewsletter } from "./footer-newsletter";
 
 export function SiteFooter() {
+  const builderBase = (
+    process.env.NEXT_PUBLIC_BUILDER_APP_URL ?? "https://builder.propertieswale.in"
+  ).replace(/\/+$/, "");
+
   return (
     <footer className="mt-16 border-t border-slate-200 bg-white">
       <div className="mx-auto max-w-7xl px-6 py-12">
@@ -56,8 +60,8 @@ export function SiteFooter() {
           <div>
             <p className="text-xs font-bold text-slate-800">For Builders</p>
             <ul className="mt-3 space-y-2 text-xs text-slate-600">
-              <li><a href="http://localhost:5173" target="_blank" rel="noreferrer" className="hover:text-accent">List Your Project</a></li>
-              <li><a href="http://localhost:5173/login" target="_blank" rel="noreferrer" className="hover:text-accent">Builder Login</a></li>
+              <li><a href={builderBase} target="_blank" rel="noreferrer" className="hover:text-accent">List Your Project</a></li>
+              <li><a href={`${builderBase}/login`} target="_blank" rel="noreferrer" className="hover:text-accent">Builder Login</a></li>
             </ul>
           </div>
 

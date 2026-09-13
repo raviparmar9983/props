@@ -3,7 +3,7 @@ import { ArrowRight, Building2, House } from "lucide-react";
 
 export function BuilderCta() {
   const builderUrl =
-    process.env.NEXT_PUBLIC_BUILDER_APP_URL ?? "http://localhost:5173";
+    process.env.NEXT_PUBLIC_BUILDER_APP_URL ?? "https://builder.propertieswale.in";
 
   return (
     <section className="mx-auto max-w-7xl px-6 pt-16">
