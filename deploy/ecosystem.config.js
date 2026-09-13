@@ -49,7 +49,10 @@ module.exports = {
     {
       name: "verifiedprops-web",
       cwd: path.join(repoPath, "apps", "web"),
-      script: "node_modules/.bin/next",
+      // `node_modules/.bin/next` is a POSIX shell shim under pnpm. PM2 uses
+      // the Node interpreter for this app, so it must receive Next's JavaScript
+      // entry point instead of that shell file.
+      script: "node_modules/next/dist/bin/next",
       args: `start -H 0.0.0.0 -p ${process.env.WEB_PORT || "3000"}`,
       interpreter: "node",
       kill_timeout: 10000,

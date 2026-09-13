@@ -8,7 +8,11 @@ import {
   loadStoredAccessToken,
 } from "../api";
 import { getStoredRefreshToken } from "../api/client";
-import type { AuthTokens, BuilderVerificationStatus } from "../api";
+import type {
+  AuthTokens,
+  BuilderVerificationStatus,
+  LoginResult,
+} from "../api";
 
 interface AuthUser {
   id: string;
@@ -22,7 +26,8 @@ interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  completeAuth: (data: AuthTokens) => void;
   register: (data: {
     email: string;
     password: string;
@@ -154,25 +159,37 @@ export function useAuth(): AuthState {
     retry: false,
   });
 
-  const loginMutation = useMutation({
-    mutationFn: (data: { email: string; password: string }) =>
-      authApi.loginBuilder(data),
-    onSuccess: (data) => {
-      handleAuthTokens(data);
-      queryClient.setQueryData(["auth", "me"], data.user);
-    },
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: authApi.registerBuilder,
-  });
-
   const clearSession = useCallback(() => {
     clearTokens();
     storeUser(null);
     queryClient.setQueryData(["auth", "me"], null);
     queryClient.clear();
   }, [queryClient]);
+
+  const completeAuth = useCallback(
+    (data: AuthTokens) => {
+      handleAuthTokens(data);
+      queryClient.setQueryData(["auth", "me"], data.user);
+    },
+    [queryClient],
+  );
+
+  const loginMutation = useMutation({
+    mutationFn: (data: { email: string; password: string }) =>
+      authApi.loginBuilder(data),
+    onSuccess: (data) => {
+      // Login is only "complete" when tokens are issued. An unverified email
+      // returns a requiresEmailVerification payload instead — the caller is
+      // responsible for sending the user to the OTP verification page.
+      if ("accessToken" in data) {
+        completeAuth(data);
+      }
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: authApi.registerBuilder,
+  });
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
@@ -183,7 +200,7 @@ export function useAuth(): AuthState {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      await loginMutation.mutateAsync({ email, password });
+      return loginMutation.mutateAsync({ email, password });
     },
     [loginMutation],
   );
@@ -214,6 +231,7 @@ export function useAuth(): AuthState {
     isAuthenticated: !!user,
     isLoading,
     login,
+    completeAuth,
     register,
     logout,
     clearSession,

@@ -23,6 +23,9 @@ export {
 } from "./projectDetails";
 export type {
   AuthTokens,
+  RequiresEmailVerification,
+  EmailVerifiedResult,
+  LoginResult,
   BuilderProfile,
   ProjectSummary,
   ProjectDetail,

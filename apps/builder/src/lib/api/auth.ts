@@ -1,5 +1,9 @@
 import apiClient from "./client";
-import type { AuthTokens } from "./schemas";
+import type {
+  AuthTokens,
+  EmailVerifiedResult,
+  LoginResult,
+} from "./schemas";
 
 export interface LoginPayload {
   email: string;
@@ -44,7 +48,22 @@ export const authApi = {
       .then((r) => r.data),
 
   loginBuilder: (data: LoginPayload) =>
-    apiClient.post<AuthTokens>("/auth/builder/login", data).then((r) => r.data),
+    apiClient
+      .post<LoginResult>("/auth/builder/login", data)
+      .then((r) => r.data),
+
+  requestEmailVerification: (data: RequestOtpPayload) =>
+    apiClient
+      .post<{ message: string; expiresInSeconds: number; resendInSeconds?: number }>(
+        "/auth/builder/verify-email/request",
+        data,
+      )
+      .then((r) => r.data),
+
+  verifyEmailOtp: (data: VerifyOtpPayload) =>
+    apiClient
+      .post<EmailVerifiedResult>("/auth/builder/verify-email/confirm", data)
+      .then((r) => r.data),
 
   requestOtp: (data: RequestOtpPayload) =>
     apiClient

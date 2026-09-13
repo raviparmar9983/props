@@ -19,7 +19,7 @@ export class MailService implements OnModuleInit {
   private readonly from: string;
 
   constructor(private config: ConfigService) {
-    this.from = config.get<string>('SMTP_FROM', 'VerifiedProps <no-reply@example.com>');
+    this.from = config.get<string>('SMTP_FROM', 'PropertiesWale <no-reply@propertieswale.com>');
   }
 
   onModuleInit() {

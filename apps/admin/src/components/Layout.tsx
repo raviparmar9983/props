@@ -20,7 +20,6 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import CategoryIcon from "@mui/icons-material/Category";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -31,7 +30,6 @@ const DRAWER_WIDTH = 240;
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/", icon: <DashboardIcon /> },
   { label: "Review Queue", path: "/projects/review-queue", icon: <RateReviewIcon /> },
-  { label: "Builders", path: "/builders", icon: <VerifiedUserIcon /> },
   { label: "Amenities", path: "/amenities", icon: <CategoryIcon /> },
 ];
 

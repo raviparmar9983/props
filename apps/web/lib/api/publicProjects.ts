@@ -28,9 +28,18 @@ export interface ProjectSearchParams {
   maxPrice?: number;
   minArea?: number;
   maxArea?: number;
+  minBuiltUp?: number;
+  maxBuiltUp?: number;
   amenities?: string[];
   verifiedOnly?: boolean;
   possessionStatus?: string;
+  facing?: string;
+  hasGatedEntry?: boolean;
+  hasCctv?: boolean;
+  fireSafetyCompliant?: boolean;
+  availableOnly?: boolean;
+  landTitleType?: string;
+  reraStatus?: string;
   page?: number;
   limit?: number;
   sort?: ProjectSort;

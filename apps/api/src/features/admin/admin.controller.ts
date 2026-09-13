@@ -47,26 +47,6 @@ class ReviewNoteDto {
 export class AdminController {
   constructor(private adminService: AdminService) {}
 
-  @Get('builders')
-  @ApiOperation({ summary: 'List builders (paginated, filterable)' })
-  async listBuilders(
-    @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.adminService.listBuilders({
-      status,
-      page: page ? parseInt(page) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
-    });
-  }
-
-  @Get('builders/:id')
-  @ApiOperation({ summary: 'Get builder detail with verification logs' })
-  async getBuilder(@Param('id') id: string) {
-    return this.adminService.getBuilder(id);
-  }
-
   @Get('projects')
   @ApiOperation({ summary: 'List projects (paginated, filterable by verification/status)' })
   @ApiQuery({ name: 'verificationStatus', required: false, enum: ProjectVerificationStatus })

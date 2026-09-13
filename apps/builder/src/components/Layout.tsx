@@ -2,7 +2,6 @@ import { useState, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
-  Alert,
   Badge,
   Box,
   CssBaseline,
@@ -446,15 +445,6 @@ export function Layout({ children }: LayoutProps) {
           </Toolbar>
         </AppBar>
         <Box sx={{ flex: 1, minWidth: 0, p: { xs: 2, md: 3 }, backgroundColor: "background.default" }}>
-          {user?.verificationStatus === "PENDING" && (
-            <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
-              Your profile is under review. Some features may be limited until you are verified.{" "}
-              <Link to="/settings" style={{ fontWeight: 600, color: "inherit" }}>
-                Upload documents
-              </Link>{" "}
-              to speed up the process.
-            </Alert>
-          )}
           {children}
         </Box>
       </Box>

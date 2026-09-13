@@ -13,43 +13,6 @@ export class AdminService {
     private mailService: MailService,
   ) {}
 
-  async listBuilders(query: {
-    status?: string;
-    page?: number;
-    limit?: number;
-  }) {
-    const { page, limit } = normalizePagination(query.page, query.limit);
-    const where: any = {};
-    if (query.status) where.verificationStatus = query.status;
-
-    const [builders, total] = await Promise.all([
-      this.prisma.builderProfile.findMany({
-        where,
-        include: { user: true, city: true },
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.builderProfile.count({ where }),
-    ]);
-
-    return { data: builders, meta: { total, page, limit } };
-  }
-
-  async getBuilder(id: string) {
-    const builder = await this.prisma.builderProfile.findUnique({
-      where: { id },
-      include: {
-        user: true,
-        city: true,
-        verificationLogs: { orderBy: { createdAt: 'desc' } },
-        projects: true,
-      },
-    });
-    if (!builder) throw new NotFoundException('Builder not found');
-    return builder;
-  }
-
   async listAmenities() {
     return this.prisma.amenity.findMany({ orderBy: { name: 'asc' } });
   }

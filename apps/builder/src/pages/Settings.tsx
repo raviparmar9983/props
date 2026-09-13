@@ -21,9 +21,6 @@ import {
   Rating,
 } from "@mui/material";
 import {
-  VerifiedIcon,
-  AccessTimeIcon as PendingIcon,
-  ErrorIcon,
   UploadFileIcon,
   DeleteIcon,
   EditIcon,
@@ -32,7 +29,6 @@ import {
 import {
   useProfile,
   useUpdateProfile,
-  useUploadDocument,
   useUploadLogo,
   usePortfolio,
   useCreatePortfolio,
@@ -40,7 +36,6 @@ import {
   useDeletePortfolio,
   useReviews,
 } from "../lib/hooks";
-import { StatusBadge } from "../components/StatusBadge";
 import { formatDate } from "../utils/format";
 
 interface PortfolioForm {
@@ -57,7 +52,6 @@ interface PortfolioForm {
 export default function Settings() {
   const { data: profile, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
-  const uploadDoc = useUploadDocument();
   const uploadLogo = useUploadLogo();
   const { data: portfolio = [], isLoading: portfolioLoading } = usePortfolio();
   const createPortfolio = useCreatePortfolio();
@@ -75,7 +69,6 @@ export default function Settings() {
     onTimeDeliveryRate: "",
   });
   const [success, setSuccess] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [logoProgress, setLogoProgress] = useState<number | null>(null);
   const [portfolioDialog, setPortfolioDialog] = useState(false);
   const [portfolioForm, setPortfolioForm] = useState<PortfolioForm>({
@@ -206,15 +199,6 @@ export default function Settings() {
     }
   };
 
-  const handleDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    uploadDoc.mutate(
-      { file, onUploadProgress: setUploadProgress },
-      { onSuccess: () => setUploadProgress(null) }
-    );
-  };
-
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -232,69 +216,14 @@ export default function Settings() {
     );
   };
 
-  const verificationCopy: Record<string, string> = {
-    VERIFIED: "Your profile is verified. Projects you publish are visible to buyers with a Verified Builder badge.",
-    PENDING: "Your profile is awaiting review by our team. Upload your RERA or other verification documents below to speed things up.",
-    REJECTED: "Your profile was not approved. Review the reason below, update your details, and re-upload documents to apply again.",
-    SUSPENDED: "Your account has been suspended. Contact support for details.",
-  };
-
   return (
     <Box sx={{ maxWidth: 720 }}>
       <Typography variant="h4" fontWeight={700} gutterBottom>
         Settings
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Manage your company profile, verification documents, and public track record.
+        Manage your company profile and public track record.
       </Typography>
-
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, mb: profile.rejectionReason ? 2 : 0 }}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: 2,
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                bgcolor:
-                  profile.verificationStatus === "VERIFIED"
-                    ? "success.light"
-                    : profile.verificationStatus === "PENDING"
-                      ? "warning.light"
-                      : "error.light",
-                color:
-                  profile.verificationStatus === "VERIFIED"
-                    ? "success.main"
-                    : profile.verificationStatus === "PENDING"
-                      ? "warning.main"
-                      : "error.main",
-              }}
-            >
-              {profile.verificationStatus === "VERIFIED" && <VerifiedIcon />}
-              {profile.verificationStatus === "PENDING" && <PendingIcon />}
-              {(profile.verificationStatus === "REJECTED" || profile.verificationStatus === "SUSPENDED") && (
-                <ErrorIcon />
-              )}
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexWrap: "wrap" }}>
-                <Typography variant="h6">Verification Status</Typography>
-                <StatusBadge status={profile.verificationStatus} />
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                {verificationCopy[profile.verificationStatus] ?? ""}
-              </Typography>
-            </Box>
-          </Box>
-          {profile.rejectionReason && (
-            <Alert severity="error">{profile.rejectionReason}</Alert>
-          )}
-        </CardContent>
-      </Card>
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -469,47 +398,6 @@ export default function Settings() {
           {uploadLogo.isError && (
             <Alert severity="error" sx={{ mt: 2 }}>
               Failed to upload logo. Please try again.
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Verification Documents
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Upload your RERA registration or other verification documents.
-          </Typography>
-
-          {uploadProgress !== null && (
-            <Box sx={{ mb: 2 }}>
-              <LinearProgress variant="determinate" value={uploadProgress} />
-              <Typography variant="caption" color="text.secondary">
-                Uploading... {uploadProgress}%
-              </Typography>
-            </Box>
-          )}
-
-          <Button
-            component="label"
-            variant="outlined"
-            startIcon={<UploadFileIcon />}
-            disabled={uploadDoc.isPending}
-          >
-            Upload Document
-            <input type="file" hidden onChange={handleDocUpload} accept=".pdf,.jpg,.jpeg,.png" />
-          </Button>
-
-          {uploadDoc.isSuccess && (
-            <Alert severity="success" sx={{ mt: 2 }}>
-              Document uploaded successfully. Your verification status will be updated shortly.
-            </Alert>
-          )}
-          {uploadDoc.isError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              Failed to upload document. Please try again.
             </Alert>
           )}
         </CardContent>

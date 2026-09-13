@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "../hooks/useAuth";
-import type { BuilderVerificationStatus } from "../api/schemas";
+import type { AuthTokens, BuilderVerificationStatus, LoginResult } from "../api";
 
 interface AuthContextValue {
   user: {
@@ -18,7 +18,8 @@ interface AuthContextValue {
   } | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  completeAuth: (data: AuthTokens) => void;
   register: (data: {
     email: string;
     password: string;

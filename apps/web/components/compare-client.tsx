@@ -32,6 +32,18 @@ const SECTION_LABELS: Record<string, string> = {
   builder: "Builder",
 };
 
+const DEFAULT_EXPANDED: Record<string, boolean> = {
+  overview: true,
+  pricing: true,
+  units: true,
+  amenities: false,
+  legal: false,
+  construction: false,
+  society: false,
+  location: false,
+  builder: false,
+};
+
 function StatusBadge({ value }: { value: string | null }) {
   if (!value) return <span className="text-slate-400">Not specified</span>;
   const label = value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -66,8 +78,12 @@ interface ProjectHeadProps {
 function ProjectHead({ project: p, initialSlugs }: ProjectHeadProps) {
   const { remove } = useCompareSelection();
   return (
-    <div className="flex items-start gap-3">
-      <div className="h-16 w-20 shrink-0 overflow-hidden rounded-image bg-slate-100">
+    <div className="flex items-start gap-2.5">
+      <Link
+        href={`/projects/${p.slug}`}
+        aria-label={p.title}
+        className="h-14 w-16 shrink-0 overflow-hidden rounded-image bg-slate-100 md:h-16 md:w-20"
+      >
         {p.primaryImageUrl ? (
           <img
             src={fileUrl(p.primaryImageUrl) ?? p.primaryImageUrl}
@@ -79,11 +95,11 @@ function ProjectHead({ project: p, initialSlugs }: ProjectHeadProps) {
             No image
           </div>
         )}
-      </div>
+      </Link>
       <div className="min-w-0 flex-1">
         <Link
           href={`/projects/${p.slug}`}
-          className="line-clamp-2 text-sm font-semibold text-slate-900 hover:text-accent-dark"
+          className="line-clamp-2 block text-sm font-semibold text-slate-900 hover:text-accent-dark"
         >
           {p.title}
         </Link>
@@ -115,18 +131,11 @@ function ProjectHead({ project: p, initialSlugs }: ProjectHeadProps) {
   );
 }
 
+type Row = { label: string; values: (React.ReactNode | null)[]; isBest?: boolean[] };
+type Section = { key: string; rows: Row[] };
+
 export function CompareClient({ projects, notFound, initialSlugs }: CompareClientProps) {
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    overview: true,
-    pricing: true,
-    units: true,
-    amenities: false,
-    legal: false,
-    construction: false,
-    society: false,
-    location: false,
-    builder: false,
-  });
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(DEFAULT_EXPANDED);
 
   const toggle = (section: string) =>
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -145,10 +154,6 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
 
   // All unique amenities across projects
   const allAmenities = [...new Set(projects.flatMap((p) => p.amenities))].sort();
-
-  // Sections config
-  type Row = { label: string; values: (React.ReactNode | null)[]; isBest?: boolean[] };
-  type Section = { key: string; rows: Row[] };
 
   const amenityRows: Row[] = allAmenities.map((amenity) => ({
     label: amenity,
@@ -195,11 +200,14 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
           label: "Available units",
           values: projects.map((p) =>
             p.unitTypesSummary.length > 0 ? (
-              <div className="flex flex-col gap-1">
+              <div className="space-y-1.5">
                 {p.unitTypesSummary.map((u, i) => (
-                  <span key={i} className="text-xs">
-                    {u.label} — {formatPrice(u.price)} ({u.availableCount} avail.)
-                  </span>
+                  <div key={i} className="flex items-baseline justify-between gap-2">
+                    <span className="min-w-0 text-xs">{u.label}</span>
+                    <span className="shrink-0 whitespace-nowrap text-xs">
+                      {formatPrice(u.price)} <span className="text-slate-400">({u.availableCount} avail.)</span>
+                    </span>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -288,48 +296,67 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
     },
   ];
 
+  const anyCollapsed = sections.some((s) => expandedSections[s.key] === false);
+
+  function toggleAll() {
+    setExpandedSections(
+      Object.fromEntries(sections.map((s) => [s.key, anyCollapsed])) as Record<string, boolean>,
+    );
+  }
+
   return (
-    <div className="pb-24 md:pb-8">
-      {/* Header */}
-      <div className="sticky top-0 z-30 border-b border-slate-200 bg-surface/95 backdrop-blur-sm">
-        <div className="mx-auto max-w-6xl px-4 py-3 md:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <h1 className="font-display text-lg font-bold text-slate-900 md:text-2xl">
-                Compare Properties
-              </h1>
-              <p className="text-xs text-slate-500 md:text-sm">
-                {count} {count === 1 ? "property" : "properties"} selected
-              </p>
-            </div>
+    <div className="pb-24 md:pb-10">
+      {/* Header — sticky only on touch/narrow screens; on md+ the page uses
+          the site header above and this one stays static (no guessed offsets). */}
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-paper/95 backdrop-blur-md md:static md:border-b-0 md:bg-transparent md:backdrop-blur-none">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6 md:py-5">
+          <div className="min-w-0">
+            <h1 className="font-display text-lg font-bold text-slate-900 md:text-2xl">
+              Compare Properties
+            </h1>
+            <p className="mt-0.5 text-xs text-slate-500 md:text-sm">
+              {count} {count === 1 ? "property" : "properties"} selected
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="hidden text-[11px] uppercase tracking-wider text-slate-400 md:inline">
+              {anyCollapsed ? "Showing key details" : "All sections expanded"}
+            </span>
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="rounded-pill border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 md:py-2"
+            >
+              {anyCollapsed ? "Expand all" : "Collapse all"}
+            </button>
             <Link
               href="/search"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 md:px-4"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-slate-200 bg-surface px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50 md:px-4 md:py-2"
             >
               <Plus size={14} />
               <span className="hidden sm:inline">Add more</span>
             </Link>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Not found notice */}
       {notFound.length > 0 && (
-        <div className="mx-auto max-w-6xl px-4 pt-4">
+        <div className="mx-auto max-w-6xl px-4 pt-4 md:px-6">
           <div className="rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
             One property in this comparison is no longer available and was removed.
           </div>
         </div>
       )}
 
-      {/* ── Mobile / tablet: stacked project cards (<md) ── */}
-      <div className="mx-auto max-w-6xl space-y-6 px-4 py-4 md:hidden">
+      {/* ── Mobile (<768px): per-project cards ── */}
+      <div className="mx-auto max-w-6xl space-y-5 px-4 pt-4 md:hidden">
         {projects.map((project, pi) => (
           <article
             key={project.slug}
-            className="overflow-hidden rounded-card border border-slate-200 bg-surface shadow-sm"
+            className="overflow-hidden rounded-card border border-slate-200 bg-surface shadow-card"
           >
-            <div className="border-b border-slate-100 bg-white p-4">
+            <div className="border-b border-slate-100 bg-white p-3.5">
               <ProjectHead project={project} initialSlugs={initialSlugs} />
             </div>
 
@@ -341,28 +368,29 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
                     type="button"
                     aria-expanded={expanded}
                     onClick={() => toggle(section.key)}
-                    className="flex w-full select-none items-center justify-between gap-2 bg-slate-50/80 px-4 py-3 text-left"
+                    className="flex w-full select-none items-center justify-between gap-2 bg-slate-50/80 px-3.5 py-2.5 text-left active:bg-slate-100"
                   >
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
                       {SECTION_LABELS[section.key] ?? section.key}
                     </span>
                     {expanded ? (
-                      <ChevronUp size={16} className="shrink-0 text-slate-400" />
+                      <ChevronUp size={15} className="shrink-0 text-slate-400" />
                     ) : (
-                      <ChevronDown size={16} className="shrink-0 text-slate-400" />
+                      <ChevronDown size={15} className="shrink-0 text-slate-400" />
                     )}
                   </button>
+
                   {expanded && (
                     <dl>
                       {section.rows.map((row, ri) => (
                         <div
                           key={ri}
-                          className="flex flex-col gap-0.5 border-t border-slate-100 px-4 py-2.5 sm:flex-row sm:items-baseline sm:gap-4"
+                          className="flex items-start gap-3 border-t border-slate-100 px-3.5 py-2.5"
                         >
-                          <dt className="text-xs font-medium uppercase tracking-wide text-slate-400 sm:w-[38%] sm:shrink-0 sm:text-sm sm:normal-case sm:tracking-normal">
+                          <dt className="min-w-[42%] shrink-0 text-[11px] font-medium leading-5 tracking-wide text-slate-400">
                             {row.label}
                           </dt>
-                          <dd className="min-w-0 flex-1 break-words text-sm text-slate-700">
+                          <dd className="min-w-0 flex-1 break-words text-right text-sm leading-5 text-slate-700">
                             <Highlight isBest={row.isBest?.[pi]}>{row.values[pi] ?? "—"}</Highlight>
                           </dd>
                         </div>
@@ -376,34 +404,33 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
         ))}
       </div>
 
-      {/* ── Desktop: side-by-side comparison table (≥md) ── */}
-
-      {/* Sticky column headers — top aligns below the sticky page header */}
-      <div className="sticky top-0 z-20 hidden border-b border-slate-200 bg-surface/95 backdrop-blur-sm md:top-[73px] md:block">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px]">
-              <thead>
-                <tr>
-                  <th className="w-[120px] py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 md:w-[200px]">
-                    Attribute
+      {/* ── Desktop/tablet (≥768px): single-table comparison ──
+          One <table> with thead + tbody in ONE scroll container so column
+          widths always match and horizontal scroll is inherently synced.
+          The header row + attribute column stick inside the panel's own
+          scroll viewport, so no page-header pixel offsets are needed. */}
+      <div className="mx-auto hidden max-w-6xl px-4 pt-4 md:block md:px-6">
+        <div className="overflow-auto rounded-card border border-slate-200 bg-surface shadow-card md:max-h-[calc(100dvh-9rem)]">
+          <table className="w-full table-fixed border-separate border-spacing-0">
+            <thead>
+              <tr>
+                <th
+                  scope="col"
+                  className="sticky left-0 top-0 z-30 w-28 border-b border-r border-slate-200 bg-surface px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400 lg:w-40"
+                >
+                  Attribute
+                </th>
+                {projects.map((p) => (
+                  <th
+                    key={p.slug}
+                    scope="col"
+                    className="sticky top-0 z-20 border-b border-slate-200 bg-surface px-4 py-3 align-top lg:px-5"
+                  >
+                    <ProjectHead project={p} initialSlugs={initialSlugs} />
                   </th>
-                  {projects.map((p) => (
-                    <th key={p.slug} className="min-w-[200px] py-3 text-left">
-                      <ProjectHead project={p} initialSlugs={initialSlugs} />
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Sections */}
-      <div className="mx-auto hidden max-w-6xl px-4 md:block">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[500px]">
+                ))}
+              </tr>
+            </thead>
             <tbody>
               {sections.map((section) => {
                 const expanded = expandedSections[section.key] !== false;
@@ -434,35 +461,48 @@ function CompareSection({
   onToggle,
 }: {
   label: string;
-  rows: Array<{ label: string; values: (React.ReactNode | null)[]; isBest?: boolean[] }>;
+  rows: Row[];
   colCount: number;
   expanded: boolean;
   onToggle: () => void;
 }) {
   return (
     <>
-      <tr className="border-t border-slate-200">
-        <td
-          colSpan={colCount + 1}
-          className="cursor-pointer select-none bg-slate-50/80 py-3 px-4"
-          onClick={onToggle}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold uppercase tracking-wider text-slate-700">
-              {label}
-            </span>
-            {expanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
-          </div>
+      {/* Section header row — label lives in the sticky first column so it
+          stays visible while the table scrolls horizontally. */}
+      <tr>
+        <td className="sticky left-0 z-10 border-b border-r border-slate-200 bg-slate-50 px-4 py-3">
+          <span className="block break-words text-xs font-bold uppercase tracking-wider text-slate-700">
+            {label}
+          </span>
+        </td>
+        <td colSpan={colCount} className="border-b border-slate-200 bg-slate-50 px-4 py-0">
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-label={`${expanded ? "Hide" : "Show"} ${label}`}
+            onClick={onToggle}
+            className="flex w-full items-center justify-end gap-1.5 py-3 text-left text-xs font-semibold text-slate-500 transition-colors hover:text-slate-700"
+          >
+            <span className="font-normal text-slate-400">{expanded ? "Hide" : "Show"}</span>
+            {expanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+          </button>
         </td>
       </tr>
+
       {expanded &&
         rows.map((row, ri) => (
-          <tr key={ri} className="border-t border-slate-100">
-            <td className="py-3 pl-4 pr-2 text-sm font-medium text-slate-500 md:pr-4">
-              {row.label}
+          <tr key={ri}>
+            <td className="sticky left-0 z-10 border-b border-r border-slate-100 bg-surface px-4 py-3 align-top">
+              <span className="block break-words text-sm font-medium leading-5 text-slate-500">
+                {row.label}
+              </span>
             </td>
             {row.values.map((val, ci) => (
-              <td key={ci} className="py-3 pl-4 pr-2 text-sm text-slate-700 md:pr-4">
+              <td
+                key={ci}
+                className="border-b border-l border-slate-100 px-4 py-3 align-top text-sm leading-5 text-slate-700 lg:px-5"
+              >
                 <Highlight isBest={row.isBest?.[ci]}>{val ?? "—"}</Highlight>
               </td>
             ))}

@@ -15,6 +15,8 @@ interface HeroSearchCardProps {
   compact?: boolean;
   initialCity?: string;
   initialQuery?: string;
+  /** Called when "More Filters" is clicked; if not provided, navigates to /search */
+  onMoreFiltersClick?: () => void;
 }
 
 export function HeroSearchCard({
@@ -23,6 +25,7 @@ export function HeroSearchCard({
   compact = false,
   initialCity,
   initialQuery = "",
+  onMoreFiltersClick,
 }: HeroSearchCardProps) {
   const router = useRouter();
   const [tab, setTab] = useState<SearchTab>("BUY");
@@ -193,6 +196,10 @@ export function HeroSearchCard({
           <button
             type="button"
             onClick={() => {
+              if (onMoreFiltersClick) {
+                onMoreFiltersClick();
+                return;
+              }
               const queryString = buildParams().toString();
               router.push(queryString ? `/search?${queryString}` : "/search");
             }}

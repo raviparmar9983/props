@@ -17,7 +17,6 @@ import {
   NotificationsIcon,
   ChevronRightIcon,
   SettingsIcon,
-  VerifiedIcon,
 } from "../components/icons";
 import {
   useProjects,
@@ -121,13 +120,6 @@ export default function Dashboard() {
             <Typography variant="h5" fontWeight={700} sx={{ color: "#1F2430" }}>
               {profile?.companyName ? `Welcome back, ${profile.companyName}` : "Dashboard"}
             </Typography>
-            {profile?.verificationStatus === "VERIFIED" && (
-              <Tooltip title="Your builder profile is verified">
-                <Box sx={{ display: "inline-flex", color: "success.main" }}>
-                  <VerifiedIcon sx={{ fontSize: 20 }} />
-                </Box>
-              </Tooltip>
-            )}
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
             Here's what's happening across your projects

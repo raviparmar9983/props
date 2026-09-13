@@ -3,13 +3,9 @@ export { parseApiError, getFieldErrors } from "./errorHandler";
 export type { ApiError } from "./errorHandler";
 export { authApi } from "./auth";
 export { adminApi } from "./admin";
-export type { ListBuildersParams } from "./admin";
 export type {
   AuthTokens,
   AdminUser,
-  AdminBuilder,
-  AdminBuilderUser,
-  AdminCity,
   Amenity,
   AdminProjectSummary,
   ProjectReviewLog,
@@ -17,5 +13,4 @@ export type {
   PaginatedResponse,
   PaginatedMeta,
   UserRole,
-  BuilderVerificationStatus,
 } from "./schemas";

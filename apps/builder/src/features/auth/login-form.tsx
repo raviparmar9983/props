@@ -1,9 +1,11 @@
 import { Button, TextField, Alert, CircularProgress } from "@mui/material";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../lib/contexts/AuthContext";
 
 export function LoginForm() {
   const { login } = useAuthContext();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,7 +18,12 @@ export function LoginForm() {
         setLoading(true);
         setError("");
         try {
-          await login(email, password);
+          const result = await login(email, password);
+          if ("requiresEmailVerification" in result) {
+            navigate(
+              `/verify-email?email=${encodeURIComponent(result.email)}&resendIn=${result.resendInSeconds}`,
+            );
+          }
         } catch {
           setError("Invalid email or password.");
         } finally {

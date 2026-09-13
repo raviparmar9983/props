@@ -27,10 +27,19 @@ export class PublicController {
   @ApiQuery({ name: 'maxPrice', required: false })
   @ApiQuery({ name: 'minArea', required: false, description: 'Minimum carpet area in sqft' })
   @ApiQuery({ name: 'maxArea', required: false, description: 'Maximum carpet area in sqft' })
+  @ApiQuery({ name: 'minBuiltUp', required: false, description: 'Minimum built-up area in sqft' })
+  @ApiQuery({ name: 'maxBuiltUp', required: false, description: 'Maximum built-up area in sqft' })
   @ApiQuery({ name: 'amenities', required: false, description: 'Comma-separated amenity IDs (AND)' })
-  @ApiQuery({ name: 'verifiedOnly', required: false, enum: ['true', 'false'], description: 'Only projects from verified builders' })
+  @ApiQuery({ name: 'verifiedOnly', required: false, enum: ['true', 'false'], description: 'Only projects from builders with a RERA number' })
   @ApiQuery({ name: 'verified', required: false, enum: ['true', 'false'], description: 'Deprecated alias for verifiedOnly' })
   @ApiQuery({ name: 'possessionStatus', required: false, description: 'Comma-separated ProjectStatus values (OR)' })
+  @ApiQuery({ name: 'facing', required: false, description: 'Comma-separated Facing enum values (OR): NORTH, SOUTH, EAST, WEST, NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST' })
+  @ApiQuery({ name: 'hasGatedEntry', required: false, enum: ['true', 'false'], description: 'Only gated-community projects' })
+  @ApiQuery({ name: 'hasCctv', required: false, enum: ['true', 'false'], description: 'Only projects with CCTV' })
+  @ApiQuery({ name: 'fireSafetyCompliant', required: false, enum: ['true', 'false'], description: 'Only fire-safety-compliant projects' })
+  @ApiQuery({ name: 'availableOnly', required: false, enum: ['true', 'false'], description: 'Only unit types with availableCount > 0' })
+  @ApiQuery({ name: 'landTitleType', required: false, enum: ['FREEHOLD', 'LEASEHOLD'], description: 'Land title filter' })
+  @ApiQuery({ name: 'reraStatus', required: false, enum: ['ACTIVE', 'EXPIRED', 'NOT_REQUIRED'], description: 'RERA status of the project' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'sort', required: false, enum: ['newest', 'price_asc', 'price_desc', 'featured'] })
@@ -46,21 +55,39 @@ export class PublicController {
     @Query('maxPrice') maxPrice?: string,
     @Query('minArea') minArea?: string,
     @Query('maxArea') maxArea?: string,
+    @Query('minBuiltUp') minBuiltUp?: string,
+    @Query('maxBuiltUp') maxBuiltUp?: string,
     @Query('amenities') amenities?: string,
     @Query('verifiedOnly') verifiedOnly?: string,
     @Query('verified') verified?: string,
     @Query('possessionStatus') possessionStatus?: string,
+    @Query('facing') facing?: string,
+    @Query('hasGatedEntry') hasGatedEntry?: string,
+    @Query('hasCctv') hasCctv?: string,
+    @Query('fireSafetyCompliant') fireSafetyCompliant?: string,
+    @Query('availableOnly') availableOnly?: string,
+    @Query('landTitleType') landTitleType?: string,
+    @Query('reraStatus') reraStatus?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('sort') sort?: string,
   ) {
     return this.publicService.searchProjects({
       q, city, localityId, locality, builder, propertyType, bedrooms, amenities, possessionStatus, sort,
+      facing,
+      landTitleType,
+      reraStatus,
       verifiedOnly: (verifiedOnly ?? verified) === 'true',
+      hasGatedEntry: hasGatedEntry === 'true',
+      hasCctv: hasCctv === 'true',
+      fireSafetyCompliant: fireSafetyCompliant === 'true',
+      availableOnly: availableOnly === 'true',
       minPrice: minPrice !== undefined ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice !== undefined ? parseFloat(maxPrice) : undefined,
       minArea: minArea !== undefined ? parseFloat(minArea) : undefined,
       maxArea: maxArea !== undefined ? parseFloat(maxArea) : undefined,
+      minBuiltUp: minBuiltUp !== undefined ? parseFloat(minBuiltUp) : undefined,
+      maxBuiltUp: maxBuiltUp !== undefined ? parseFloat(maxBuiltUp) : undefined,
       page: page !== undefined ? parseInt(page, 10) : undefined,
       limit: limit !== undefined ? parseInt(limit, 10) : undefined,
     });

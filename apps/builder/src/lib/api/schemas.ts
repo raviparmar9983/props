@@ -504,6 +504,19 @@ export const RegistrationResultSchema = z.object({
 export const OtpRequestResultSchema = z.object({
   message: z.string(),
   expiresInSeconds: z.number(),
+  resendInSeconds: z.number().optional(),
+});
+
+export const RequiresEmailVerificationSchema = z.object({
+  requiresEmailVerification: z.literal(true),
+  email: z.string(),
+  expiresInSeconds: z.number(),
+  resendInSeconds: z.number(),
+  message: z.string().optional(),
+});
+
+export const EmailVerifiedResultSchema = AuthTokensSchema.extend({
+  message: z.string(),
 });
 
 export const RefreshResultSchema = z.object({
@@ -525,6 +538,11 @@ export type MediaType = z.infer<typeof MediaTypeSchema>;
 export type LeadStatus = z.infer<typeof LeadStatusSchema>;
 export type PaginatedMeta = z.infer<typeof PaginatedMetaSchema>;
 export type AuthTokens = z.infer<typeof AuthTokensSchema>;
+export type RequiresEmailVerification = z.infer<
+  typeof RequiresEmailVerificationSchema
+>;
+export type EmailVerifiedResult = z.infer<typeof EmailVerifiedResultSchema>;
+export type LoginResult = AuthTokens | RequiresEmailVerification;
 export type BuilderProfile = z.infer<typeof BuilderProfileSchema>;
 export type City = z.infer<typeof CitySchema>;
 export type Locality = z.infer<typeof LocalitySchema>;

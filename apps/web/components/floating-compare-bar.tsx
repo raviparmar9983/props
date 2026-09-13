@@ -43,7 +43,7 @@ export function FloatingCompareBar() {
         <CompareDropdown compact openUp />
       </div>
       <div className="relative hidden shrink-0 sm:block">
-        <CompareDropdown />
+        <CompareDropdown openUp />
       </div>
 
       {/* Clear button */}

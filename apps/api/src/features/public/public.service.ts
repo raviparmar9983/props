@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Logger, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../infrastructure/storage/storage.service';
-import { ProjectStatus, ProjectVerificationStatus, ProjectReviewStatus, PropertyType, BuilderVerificationStatus, Prisma, MediaType, LandmarkCategory } from '@prisma/client';
+import { ProjectStatus, ProjectVerificationStatus, ProjectReviewStatus, PropertyType, Prisma, MediaType, LandmarkCategory, Facing, LandTitleType, ReraStatus } from '@prisma/client';
 import { normalizePagination } from '../../common/utils/pagination';
 import { CreateReviewDto } from './dto/review.dto';
 
@@ -42,9 +42,18 @@ export class PublicService {
     maxPrice?: number;
     minArea?: number;
     maxArea?: number;
+    minBuiltUp?: number;
+    maxBuiltUp?: number;
     amenities?: string;
     verifiedOnly?: boolean;
     possessionStatus?: string;
+    facing?: string;
+    hasGatedEntry?: boolean;
+    hasCctv?: boolean;
+    fireSafetyCompliant?: boolean;
+    availableOnly?: boolean;
+    landTitleType?: string;
+    reraStatus?: string;
     page?: number;
     limit?: number;
     sort?: string;
@@ -62,6 +71,12 @@ export class PublicService {
       throw new BadRequestException({
         code: 'INVALID_RANGE',
         message: 'minArea cannot be greater than maxArea',
+      });
+    }
+    if (query.minBuiltUp !== undefined && query.maxBuiltUp !== undefined && query.minBuiltUp > query.maxBuiltUp) {
+      throw new BadRequestException({
+        code: 'INVALID_RANGE',
+        message: 'minBuiltUp cannot be greater than maxBuiltUp',
       });
     }
 
@@ -126,9 +141,11 @@ export class PublicService {
       where.builder = { slug: query.builder };
     }
     if (query.verifiedOnly) {
+      // Builder profile review is deferred for now — "verified only" maps to
+      // builders that hold a RERA number (a verified build record).
       where.builder = {
         ...(where.builder ?? {}),
-        verificationStatus: BuilderVerificationStatus.VERIFIED,
+        reraNumber: { not: null },
       };
     }
 
@@ -147,8 +164,59 @@ export class PublicService {
     if (query.minArea !== undefined || query.maxArea !== undefined) {
       unitSome.carpetArea = { gte: query.minArea, lte: query.maxArea };
     }
+    // Built-up area range filter
+    if (query.minBuiltUp !== undefined || query.maxBuiltUp !== undefined) {
+      unitSome.builtUpArea = { gte: query.minBuiltUp, lte: query.maxBuiltUp };
+    }
+    // Facing: filter unit types by facing direction (OR across selected values)
+    const facingValues = this.splitCsv(query.facing) as Facing[];
+    const validFacings = Object.values(Facing);
+    for (const f of facingValues) {
+      if (!validFacings.includes(f)) {
+        throw new BadRequestException({
+          code: 'INVALID_FILTER_VALUE',
+          message: `Invalid facing: ${f}`,
+        });
+      }
+    }
+    if (facingValues.length > 0) {
+      unitSome.facing = { in: facingValues };
+    }
+    // Available units only: at least one unit with availableCount > 0
+    if (query.availableOnly) {
+      unitSome.availableCount = { gt: 0 };
+    }
     if (Object.keys(unitSome).length > 0) {
       where.unitTypes = { some: unitSome };
+    }
+
+    // Project-level boolean security/lifestyle filters
+    if (query.hasGatedEntry) where.hasGatedEntry = true;
+    if (query.hasCctv) where.hasCctv = true;
+    if (query.fireSafetyCompliant) where.fireSafetyCompliant = true;
+
+    // Land title type filter
+    if (query.landTitleType) {
+      const validLandTitles = Object.values(LandTitleType);
+      if (!validLandTitles.includes(query.landTitleType as LandTitleType)) {
+        throw new BadRequestException({
+          code: 'INVALID_FILTER_VALUE',
+          message: `Invalid landTitleType: ${query.landTitleType}`,
+        });
+      }
+      where.landTitleType = query.landTitleType as LandTitleType;
+    }
+
+    // RERA status filter
+    if (query.reraStatus) {
+      const validReraStatuses = Object.values(ReraStatus);
+      if (!validReraStatuses.includes(query.reraStatus as ReraStatus)) {
+        throw new BadRequestException({
+          code: 'INVALID_FILTER_VALUE',
+          message: `Invalid reraStatus: ${query.reraStatus}`,
+        });
+      }
+      where.reraStatus = query.reraStatus as ReraStatus;
     }
 
     // Amenities are ANDed: one `some: { amenityId }` clause per selected amenity.
@@ -265,9 +333,18 @@ export class PublicService {
     if (query.maxPrice !== undefined) appliedFilters.maxPrice = query.maxPrice;
     if (query.minArea !== undefined) appliedFilters.minArea = query.minArea;
     if (query.maxArea !== undefined) appliedFilters.maxArea = query.maxArea;
+    if (query.minBuiltUp !== undefined) appliedFilters.minBuiltUp = query.minBuiltUp;
+    if (query.maxBuiltUp !== undefined) appliedFilters.maxBuiltUp = query.maxBuiltUp;
     if (amenityIds.length > 0) appliedFilters.amenities = amenityIds;
     if (query.verifiedOnly) appliedFilters.verifiedOnly = true;
     if (possessionStatuses.length > 0) appliedFilters.possessionStatus = possessionStatuses;
+    if (facingValues.length > 0) appliedFilters.facing = facingValues;
+    if (query.hasGatedEntry) appliedFilters.hasGatedEntry = true;
+    if (query.hasCctv) appliedFilters.hasCctv = true;
+    if (query.fireSafetyCompliant) appliedFilters.fireSafetyCompliant = true;
+    if (query.availableOnly) appliedFilters.availableOnly = true;
+    if (query.landTitleType) appliedFilters.landTitleType = query.landTitleType;
+    if (query.reraStatus) appliedFilters.reraStatus = query.reraStatus;
 
     return { data, meta: { page, limit, total }, appliedFilters };
   }
@@ -440,7 +517,6 @@ export class PublicService {
   async getBuilders() {
     const builders = await this.prisma.builderProfile.findMany({
       where: {
-        verificationStatus: BuilderVerificationStatus.VERIFIED,
         projects: { some: this.visibleProjectFilter() },
       },
       select: { id: true, companyName: true, slug: true, logo: true },
@@ -458,11 +534,11 @@ export class PublicService {
   }
 
   async getStats() {
-    const [projects, verifiedBuilders, cities, perCity, cityRows] =
+    const [projects, publicBuilders, cities, perCity, cityRows] =
       await Promise.all([
         this.prisma.project.count({ where: this.visibleProjectFilter() }),
         this.prisma.builderProfile.count({
-          where: { verificationStatus: BuilderVerificationStatus.VERIFIED },
+          where: { projects: { some: this.visibleProjectFilter() } },
         }),
         this.prisma.city.count(),
         this.prisma.project.groupBy({
@@ -487,12 +563,12 @@ export class PublicService {
       .filter((c) => c.slug)
       .sort((a, b) => b.count - a.count);
 
-    return { projects, verifiedBuilders, cities, citiesWithCounts };
+    return { projects, verifiedBuilders: publicBuilders, cities, citiesWithCounts };
   }
 
   private async getVerifiedBuilderBySlug(slug: string) {
     const builder = await this.prisma.builderProfile.findFirst({
-      where: { slug, verificationStatus: BuilderVerificationStatus.VERIFIED },
+      where: { slug },
       include: { city: true },
     });
     if (!builder) throw new NotFoundException('Builder not found');

@@ -107,6 +107,32 @@ export class AuthService {
     if (user.status === 'SUSPENDED') {
       throw new UnauthorizedException('Account suspended');
     }
+
+    // A builder must verify their email before they can sign in.
+    if (!user.isEmailVerified) {
+      const expiryMinutes = this.config.get<number>('OTP_EXPIRY_MINUTES', 5);
+      const cooldownSeconds = this.config.get<number>('OTP_RESEND_COOLDOWN_SECONDS', 30);
+      const elapsedSeconds = await this.secondsSinceLastEmailOtp(user.email);
+
+      let resendInSeconds = Math.max(0, Math.ceil(cooldownSeconds - elapsedSeconds));
+      if (elapsedSeconds >= cooldownSeconds) {
+        try {
+          await this.sendBuilderEmailVerification(user.email);
+        } catch (err) {
+          this.logger.error(`Failed to send verification email to ${user.email}`, err);
+        }
+        resendInSeconds = cooldownSeconds;
+      }
+
+      return {
+        requiresEmailVerification: true,
+        email: user.email,
+        expiresInSeconds: expiryMinutes * 60,
+        resendInSeconds,
+        message: 'Please verify your email to finish setting up your account.',
+      };
+    }
+
     const tokens = await this.issueTokens(user);
     return {
       ...tokens,
@@ -382,7 +408,7 @@ export class AuthService {
     if (!user || user.role !== UserRole.BUILDER) {
       throw new BadRequestException('No builder account found with this email');
     }
-    if (user.builderProfile?.verificationStatus === 'VERIFIED') {
+    if (user.isEmailVerified) {
       return { message: 'Email already verified.' };
     }
 
@@ -435,32 +461,27 @@ export class AuthService {
       throw new BadRequestException('Builder account not found');
     }
 
-    // Mark email as verified and builder as VERIFIED
+    // Mark the email as verified — email verification is the only gate for
+    // builder access. This also acts as a full sign-in so the confirmation
+    // page can pick up the session straight away.
     await this.prisma.user.update({
       where: { id: user.id },
       data: { isEmailVerified: true },
     });
 
-    const updatedProfile = await this.prisma.builderProfile.update({
-      where: { id: user.builderProfile.id },
-      data: {
-        verificationStatus: 'VERIFIED',
-        verifiedAt: new Date(),
-      },
-    });
+    const tokens = await this.issueTokens(user);
 
-    // Send congratulations email
-    try {
-      await this.mailService.sendBuilderVerified(user.email, user.builderProfile.companyName);
-    } catch (err) {
-      this.logger.error(`Failed to send verified email to ${user.email}`, err);
-    }
-
-    this.logger.log(`Builder ${user.email} verified via email OTP`);
+    this.logger.log(`Builder ${user.email} verified email via OTP`);
 
     return {
-      message: 'Email verified successfully. Your builder account is now active.',
-      verificationStatus: updatedProfile.verificationStatus,
+      ...tokens,
+      message: 'Email verified successfully. Your account is now active.',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        verificationStatus: user.builderProfile.verificationStatus,
+      },
     };
   }
 
@@ -502,6 +523,15 @@ export class AuthService {
     });
 
     await this.mailService.sendEmailVerification(email, otpCode);
+  }
+
+  private async secondsSinceLastEmailOtp(email: string): Promise<number> {
+    const last = await this.prisma.otpVerification.findFirst({
+      where: { email, purpose: 'EMAIL_VERIFICATION' },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+    return last ? (Date.now() - last.createdAt.getTime()) / 1000 : Number.POSITIVE_INFINITY;
   }
 
   private generateOtp(length: number): string {

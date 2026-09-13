@@ -14,8 +14,7 @@ const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const PendingVerification = lazy(() => import("./pages/PendingVerification"));
-const Rejected = lazy(() => import("./pages/Rejected"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ProjectsList = lazy(() => import("./pages/ProjectsList"));
 const CreateProject = lazy(() => import("./pages/CreateProject"));
@@ -65,8 +64,7 @@ function App() {
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/pending-verification" element={<PendingVerification />} />
-                  <Route path="/rejected" element={<Rejected />} />
+                  <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route
                     path="/"
                     element={

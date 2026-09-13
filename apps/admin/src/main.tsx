@@ -12,7 +12,6 @@ import { Toaster } from "./components/Toaster";
 
 const Login = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Builders = lazy(() => import("./pages/Builders"));
 const Amenities = lazy(() => import("./pages/Amenities"));
 const ReviewQueue = lazy(() => import("./pages/ReviewQueue"));
 const ReviewDetail = lazy(() => import("./pages/ReviewDetail"));
@@ -63,14 +62,6 @@ function App() {
                     element={
                       <ProtectedLayout>
                         <Dashboard />
-                      </ProtectedLayout>
-                    }
-                  />
-                  <Route
-                    path="/builders"
-                    element={
-                      <ProtectedLayout>
-                        <Builders />
                       </ProtectedLayout>
                     }
                   />

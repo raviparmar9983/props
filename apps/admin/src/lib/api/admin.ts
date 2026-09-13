@@ -1,6 +1,5 @@
 import apiClient from "./client";
 import type {
-  AdminBuilder,
   AdminProjectSummary,
   Amenity,
   PaginatedResponse,
@@ -8,33 +7,7 @@ import type {
   ProjectReviewStatus,
 } from "./schemas";
 
-export interface ListBuildersParams {
-  status?: string;
-  page?: number;
-  limit?: number;
-}
-
 export const adminApi = {
-  listBuilders: (params?: ListBuildersParams) => {
-    const query: ListBuildersParams = {};
-    if (params?.status) query.status = params.status;
-    if (params?.page) query.page = params.page;
-    if (params?.limit) query.limit = params.limit;
-    return apiClient
-      .get<PaginatedResponse<AdminBuilder>>("/admin/builders", { params: query })
-      .then((r) => r.data);
-  },
-
-  approveBuilder: (id: string) =>
-    apiClient
-      .patch<AdminBuilder>(`/admin/builders/${id}/approve`)
-      .then((r) => r.data),
-
-  rejectBuilder: (id: string, reason: string) =>
-    apiClient
-      .patch<AdminBuilder>(`/admin/builders/${id}/reject`, { reason })
-      .then((r) => r.data),
-
   listAmenities: () =>
     apiClient.get<Amenity[]>("/admin/amenities").then((r) => r.data),
 

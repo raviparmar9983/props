@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient, Prisma, ProjectVerificationStatus, ProjectReviewStatus, MediaType, SpecCategory, PaymentPlanType, LandmarkCategory, ParkingType, MaintenanceFrequency, LeadStatus } from "@prisma/client";
+import { PrismaClient, Prisma, ProjectVerificationStatus, ProjectReviewStatus, Facing, MediaType, SpecCategory, PaymentPlanType, LandmarkCategory, ParkingType, MaintenanceFrequency, LeadStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as bcrypt from "bcrypt";
 
@@ -423,6 +423,9 @@ interface UnitDef {
   parkingType: ParkingType | null;
   totalCount: number;
   availableCount: number;
+  floorNumber?: number;
+  facing?: Facing | null;
+  viewType?: string | null;
   attributes: Prisma.InputJsonValue;
 }
 
@@ -1009,6 +1012,266 @@ async function main() {
     }
   }
 
+  // ── Flagship showcase project (published) ────────
+  // One hand-crafted project covering every detail the platform captures.
+  // APPROVED/APPROVED + READY so it shows in the public web app, just like
+  // the admin "publish" flow leaves it. Added to `projectIds` so the children
+  // rebuild below (delete + recreate) keeps it idempotent across re-runs.
+  const flagshipTitle = "Aurora Sky Residences";
+  const flagshipSlug = "aurora-sky-residences-pune";
+  const flagshipCity = cityMap.get("pune")!;
+  const flagshipLocality =
+    flagshipCity.localities.find((l) => l.slug === "kharadi") ?? flagshipCity.localities[0]!;
+  const flagshipBuilder =
+    builders.find((b) => b.companyName === "Meridian Estates") ?? builders[0]!;
+  const flagshipPossession = new Date("2026-03-31T00:00:00Z");
+  const flagshipImageBase = `${IMAGE_BASE}/${flagshipSlug}`;
+  const flagshipDescription =
+    `Aurora Sky Residences is a landmark high-rise development in the heart of Kharadi, Pune's fastest-growing business district. Spread across 4.5 acres of serene green landscape, the project features two premium residential towers — Tower A and Tower B — offering 2, 3 and 4 BHK residences with expansive skyline, garden and lake views.\n\n` +
+    `Every residence is crafted with premium specifications: Italian marble flooring in the living areas, quartz countertops in an open modular kitchen, branded sanitary fixtures, UPVC double-glazed windows, concealed copper wiring and full power backup. The estate is fully fire-compliant, with CCTV surveillance and round-the-clock security across the premises.\n\n` +
+    `Residents enjoy a 40,000 sqft clubhouse with a temperature-controlled swimming pool, fully equipped gymnasium, indoor games, library lounge, multi-purpose hall and sports courts. With the Kharadi metro station just 800 metres away and direct access to the Pune–Mumbai highway, Aurora Sky Residences offers unmatched connectivity to schools, hospitals, malls and the airport.`;
+
+  const flagshipData = {
+    builderId: flagshipBuilder.id,
+    cityId: flagshipCity.id,
+    localityId: flagshipLocality.id,
+    title: flagshipTitle,
+    slug: flagshipSlug,
+    description: flagshipDescription,
+    status: "READY" as const,
+    address: "Survey No 45/2, Plot 12, Kharadi Road, Kharadi, Pune 411014, Maharashtra",
+    latitude: 18.5476,
+    longitude: 73.9415,
+    reraProjectNumber: "P52100041537",
+    reraStatus: "ACTIVE" as const,
+    reraPortalUrl: "https://maharera.mahaonline.gov.in",
+    possessionDate: flagshipPossession,
+    occupancyCertStatus: "RECEIVED" as const,
+    commencementCertStatus: "RECEIVED" as const,
+    landTitleType: "FREEHOLD" as const,
+    litigationStatus: "NONE" as const,
+    structureType: "RCC Frame with Shear Wall",
+    powerBackupCapacity: "Full Backup",
+    waterSource: "Municipal Supply + Dual Borewell + Recycling Plant",
+    liftBrand: "Otis",
+    liftCount: 6,
+    fireSafetyCompliant: true,
+    openSpacePercent: 58,
+    greenAreaPercent: 40,
+    hasCctv: true,
+    hasGatedEntry: true,
+    securityGuardCount: 12,
+    petPolicy: "Pets allowed with restrictions",
+    neighborhoodOverview:
+      "Kharadi is Pune's premier IT and fintech hub, home to the World Trade Center, EON IT Park and several technology campuses. The neighbourhood offers excellent social infrastructure — renowned schools, Apollo Hospital, Phoenix Marketcity and the Pune International Airport are all within a short drive, while the upcoming metro line puts the rest of Pune within easy reach.",
+    videoWalkthroughUrl: VIDEO_URLS[1],
+    allowsSiteVisitBooking: true,
+    maintenanceAmount: 6300,
+    maintenanceFrequency: "MONTHLY" as const,
+    isFeatured: true,
+    verificationStatus: ProjectVerificationStatus.APPROVED,
+    reviewStatus: ProjectReviewStatus.APPROVED,
+    reviewedAt: new Date("2026-04-01T00:00:00Z"),
+    reviewNotes: "Seeded flagship project for the public details page demo.",
+    metaTitle: `Aurora Sky Residences in Kharadi, Pune | 2, 3 & 4 BHK starting ₹1.45 Cr`,
+    metaDescription:
+      "Ready-to-move luxury residences in Kharadi, Pune. RERA P52100041537, 40,000 sqft clubhouse, metro & airport minutes away. Verified builder, zero brokerage.",
+    ogImageUrl: `${flagshipImageBase}-1/1200/630`,
+    publishedAt: new Date("2026-04-01T00:00:00Z"),
+    deletedAt: null,
+  };
+
+  const flagship = await prisma.project.upsert({
+    where: { slug: flagshipSlug },
+    create: flagshipData,
+    update: flagshipData,
+  });
+  projectIds.push(flagship.id);
+  projectBuilderId.set(flagship.id, flagshipBuilder.id);
+
+  // Towers
+  const flagshipTowerARef = `${flagship.id}:tower:flag:a`;
+  const flagshipTowerBRef = `${flagship.id}:tower:flag:b`;
+  towerRows.push({ refKey: flagshipTowerARef, projectId: flagship.id, name: "Tower A", totalFloors: 34 });
+  towerRows.push({ refKey: flagshipTowerBRef, projectId: flagship.id, name: "Tower B", totalFloors: 28 });
+
+  // Unit types (with floor number, facing and view type)
+  const flagshipUnits: UnitDef[] = [
+    { label: "2 BHK Apartment", propertyType: "FLAT", bedrooms: 2, carpetArea: 980, builtUpArea: 1180, areaUnit: "SQFT", price: 14500000, priceUnit: "TOTAL", parkingCount: 1, parkingType: "COVERED", totalCount: 96, availableCount: 14, floorNumber: 12, facing: "EAST", viewType: "City Skyline", attributes: { furnishing: "Semi-Furnished", view: "City Skyline" } },
+    { label: "3 BHK Apartment", propertyType: "FLAT", bedrooms: 3, carpetArea: 1390, builtUpArea: 1670, areaUnit: "SQFT", price: 20500000, priceUnit: "TOTAL", parkingCount: 2, parkingType: "COVERED", totalCount: 72, availableCount: 22, floorNumber: 15, facing: "NORTH", viewType: "Garden & Lake", attributes: { furnishing: "Semi-Furnished", view: "Garden & Lake" } },
+    { label: "3 BHK Garden Residence", propertyType: "FLAT", bedrooms: 3, carpetArea: 1350, builtUpArea: 1620, areaUnit: "SQFT", price: 19500000, priceUnit: "TOTAL", parkingCount: 2, parkingType: "COVERED", totalCount: 60, availableCount: 18, floorNumber: 18, facing: "SOUTH_EAST", viewType: "Podium Gardens", attributes: { furnishing: "Semi-Furnished", view: "Podium Gardens" } },
+    { label: "4 BHK Penthouse", propertyType: "FLAT", bedrooms: 4, carpetArea: 2100, builtUpArea: 2550, areaUnit: "SQFT", price: 42000000, priceUnit: "TOTAL", parkingCount: 3, parkingType: "BASEMENT", totalCount: 8, availableCount: 2, floorNumber: 32, facing: "NORTH_WEST", viewType: "360° Skyline", attributes: { furnishing: "Fully Furnished", view: "360° Skyline" } },
+  ];
+  unitTypeDefs.push(
+    ...flagshipUnits.map((u, ui) => ({
+      ...u,
+      projectId: flagship.id,
+      towerRefKey: ui < 2 ? flagshipTowerARef : flagshipTowerBRef,
+    })),
+  );
+
+  // Media: images, video, floor plans, master plan, brochure
+  const flagshipMedia: Array<{ type: MediaType; url: string; caption: string | null; displayOrder: number; isPrimary: boolean }> = [
+    { type: "IMAGE", url: `${flagshipImageBase}-1/1600/1000`, caption: `${flagshipTitle} — main entrance & podium`, displayOrder: 0, isPrimary: true },
+    { type: "IMAGE", url: `${flagshipImageBase}-2/1600/1000`, caption: `${flagshipTitle} — temperature-controlled swimming pool`, displayOrder: 1, isPrimary: false },
+    { type: "IMAGE", url: `${flagshipImageBase}-3/1600/1000`, caption: `${flagshipTitle} — landscaped gardens & kids play area`, displayOrder: 2, isPrimary: false },
+    { type: "IMAGE", url: `${flagshipImageBase}-4/1600/1000`, caption: `${flagshipTitle} — modern living room`, displayOrder: 3, isPrimary: false },
+    { type: "IMAGE", url: `${flagshipImageBase}-5/1600/1000`, caption: `${flagshipTitle} — modular kitchen with quartz countertop`, displayOrder: 4, isPrimary: false },
+    { type: "IMAGE", url: `${flagshipImageBase}-6/1600/1000`, caption: `${flagshipTitle} — master bedroom`, displayOrder: 5, isPrimary: false },
+    { type: "VIDEO", url: VIDEO_URLS[1]!, caption: `${flagshipTitle} — video walkthrough`, displayOrder: 6, isPrimary: false },
+    { type: "FLOOR_PLAN", url: `${flagshipImageBase}-fp-a/1000/1200`, caption: "Typical floor plan — Tower A (2 & 3 BHK)", displayOrder: 7, isPrimary: false },
+    { type: "FLOOR_PLAN", url: `${flagshipImageBase}-fp-b/1000/1200`, caption: "Typical floor plan — Tower B (3 BHK & Penthouse)", displayOrder: 8, isPrimary: false },
+    { type: "MASTER_PLAN", url: `${flagshipImageBase}-mp/1400/900`, caption: "Master site plan", displayOrder: 9, isPrimary: false },
+    { type: "BROCHURE", url: BROCHURE_URL, caption: null, displayOrder: 10, isPrimary: false },
+  ];
+  mediaRows.push(...flagshipMedia.map((m) => ({ ...m, projectId: flagship.id })));
+
+  // Amenities
+  const flagshipAmenityNames = [
+    "Swimming Pool", "Clubhouse", "Power Backup", "Covered Parking", "24/7 Security",
+    "Gym", "Kids Play Area", "Garden", "Lift", "CCTV", "Rainwater Harvesting",
+    "Fire Safety", "Sports Court", "EV Charging", "Entrance Gate",
+  ];
+  const flagshipAmenityIds = flagshipAmenityNames
+    .map((name) => amenityIdByName.get(name))
+    .filter((id): id is number => id !== undefined);
+  for (const amenityId of flagshipAmenityIds) {
+    amenityRows.push({ projectId: flagship.id, amenityId });
+  }
+
+  // Contacts
+  contactRows.push({
+    builderId: flagshipBuilder.id,
+    projectId: flagship.id,
+    name: "Ananya Iyer",
+    designation: "Senior Sales Manager",
+    phone: "+91 98500 12345",
+    email: `sales@${flagshipBuilder.slug}.com`,
+    isPrimary: true,
+  });
+  contactRows.push({
+    builderId: flagshipBuilder.id,
+    projectId: flagship.id,
+    name: "Rohan Desai",
+    designation: "Site Manager",
+    phone: "+91 98220 54321",
+    email: `site@${flagshipBuilder.slug}.com`,
+    isPrimary: false,
+  });
+
+  // Nearby landmarks
+  const flagshipLandmarks: Array<{ category: LandmarkCategory; name: string; distanceKm: number; travelTimeMinutes: number | null }> = [
+    { category: "METRO", name: "Kharadi Metro Station", distanceKm: 0.8, travelTimeMinutes: 3 },
+    { category: "SCHOOL", name: "Delhi Public School, Kharadi", distanceKm: 1.2, travelTimeMinutes: 5 },
+    { category: "HIGHWAY", name: "NH-48 (Pune – Mumbai Expressway)", distanceKm: 3.1, travelTimeMinutes: 8 },
+    { category: "HOSPITAL", name: "Apollo Hospital, Kharadi", distanceKm: 3.5, travelTimeMinutes: 10 },
+    { category: "MALL", name: "Phoenix Marketcity, Viman Nagar", distanceKm: 4.2, travelTimeMinutes: 15 },
+    { category: "AIRPORT", name: "Pune International Airport (PNQ)", distanceKm: 6.8, travelTimeMinutes: 25 },
+  ];
+  nearbyLandmarkRows.push(...flagshipLandmarks.map((l) => ({ ...l, projectId: flagship.id })));
+
+  // Price components
+  priceComponentRows.push(
+    { projectId: flagship.id, label: "Base Price (2 BHK starting)", amount: 14500000, isIncludedInBasePrice: true, displayOrder: 0 },
+    { projectId: flagship.id, label: "PLC (Preferred Location Charge)", amount: 550000, isIncludedInBasePrice: false, displayOrder: 1 },
+    { projectId: flagship.id, label: "Covered Car Parking", amount: 350000, isIncludedInBasePrice: false, displayOrder: 2 },
+    { projectId: flagship.id, label: "IFMS (Internal Fund Maintenance)", amount: 435000, isIncludedInBasePrice: false, displayOrder: 3 },
+    { projectId: flagship.id, label: "Club Membership Charge", amount: 150000, isIncludedInBasePrice: false, displayOrder: 4 },
+    { projectId: flagship.id, label: "Maintenance Deposit (Refundable)", amount: 200000, isIncludedInBasePrice: false, displayOrder: 5 },
+  );
+
+  // Payment plans
+  const flagshipPaymentPlans: Array<{ name: string; type: PaymentPlanType; bookingAmount: number; milestones: Prisma.InputJsonValue }> = [
+    {
+      name: "Construction Linked Plan",
+      type: "CONSTRUCTION_LINKED",
+      bookingAmount: 1500000,
+      milestones: [
+        { stage: "At Booking", percent: 10 },
+        { stage: "Foundation Complete", percent: 15 },
+        { stage: "Plinth Level", percent: 10 },
+        { stage: "1st Floor Slab", percent: 10 },
+        { stage: "Mid-rise Slab", percent: 15 },
+        { stage: "Top Floor Slab", percent: 10 },
+        { stage: "Brickwork Complete", percent: 10 },
+        { stage: "Possession", percent: 20 },
+      ],
+    },
+    {
+      name: "Flexi Plan",
+      type: "FLEXI",
+      bookingAmount: 1500000,
+      milestones: [
+        { stage: "At Booking", percent: 10 },
+        { stage: "On Demand 1", percent: 25 },
+        { stage: "On Demand 2", percent: 25 },
+        { stage: "On Demand 3", percent: 20 },
+        { stage: "At Possession", percent: 20 },
+      ],
+    },
+  ];
+  for (const plan of flagshipPaymentPlans) {
+    paymentPlanRows.push({ projectId: flagship.id, ...plan });
+  }
+
+  // Bank partners
+  for (const bankName of ["HDFC Bank", "ICICI Bank", "SBI", "Axis Bank"]) {
+    bankPartnerRows.push({ projectId: flagship.id, bankName, logoUrl: `${IMAGE_BASE}/${slugify(bankName)}/120/40` });
+  }
+
+  // Construction updates (project is READY)
+  const flagshipUpdates: Array<{ title: string; description: string; photoUrl: string; updateDate: Date; progressPercent: number }> = [
+    { title: "Structure & Façade", description: "Structure completed for Tower A and Tower B; façade work finished.", photoUrl: `${flagshipImageBase}-cu1/800/600`, updateDate: new Date("2025-06-15T00:00:00Z"), progressPercent: 100 },
+    { title: "Internal Finishing & Landscaping", description: "Interiors, podium gardens and landscaping completed across both towers.", photoUrl: `${flagshipImageBase}-cu2/800/600`, updateDate: new Date("2025-09-30T00:00:00Z"), progressPercent: 100 },
+    { title: "Project Completion & Handover", description: "All towers handed over to residents. Clubhouse and amenities fully operational.", photoUrl: `${flagshipImageBase}-cu3/800/600`, updateDate: new Date("2025-12-20T00:00:00Z"), progressPercent: 100 },
+  ];
+  constructionUpdateRows.push(...flagshipUpdates.map((u) => ({ ...u, projectId: flagship.id })));
+
+  // Specifications
+  const flagshipSpecs: Array<{ category: SpecCategory; label: string; value: string }> = [
+    { category: "FLOORING", label: "Living Room", value: "Italian Marble" },
+    { category: "FLOORING", label: "Bedrooms", value: "Wooden Laminate Flooring" },
+    { category: "FLOORING", label: "Balcony", value: "Anti-skid Ceramic Tiles" },
+    { category: "KITCHEN", label: "Platform", value: "Quartz Countertop" },
+    { category: "KITCHEN", label: "Wall Dado", value: "Full Height Dado" },
+    { category: "KITCHEN", label: "Provision", value: "Water Purifier, Exhaust Fan, RO + Chimney" },
+    { category: "BATHROOM", label: "Fittings", value: "Jaguar / Cera Premium" },
+    { category: "BATHROOM", label: "Wall Dado", value: "Digital Print Tiles" },
+    { category: "BATHROOM", label: "Sanitary", value: "Wall-mounted WC" },
+    { category: "DOORS_WINDOWS", label: "Main Door", value: "Teak Wood Frame with Laminate Shutters" },
+    { category: "DOORS_WINDOWS", label: "Internal Doors", value: "Flush Door with Veneer" },
+    { category: "DOORS_WINDOWS", label: "Windows", value: "UPVC Windows with Double-Glazed Glass" },
+    { category: "ELECTRICAL", label: "Wiring", value: "Concealed Copper Wiring" },
+    { category: "ELECTRICAL", label: "Points", value: "TV, Telephone, AC, Modular Switches, DTH Provision" },
+    { category: "ELECTRICAL", label: "Backup", value: "Full Power Backup" },
+    { category: "PAINT", label: "Interior", value: "Asian Paints Apex Emulsion" },
+    { category: "PAINT", label: "Exterior", value: "Weather-proof Acrylic Paint" },
+  ];
+  specificationRows.push(...flagshipSpecs.map((s) => ({ ...s, projectId: flagship.id })));
+
+  // FAQs
+  const flagshipFaqs: Array<{ question: string; answer: string; displayOrder: number }> = [
+    { question: "Is Aurora Sky Residences RERA registered?", answer: "Yes. The project is registered with MahaRERA under number P52100041537, mentioned in the project details above. You can verify it on the MahaRERA portal.", displayOrder: 0 },
+    { question: "What is the possession timeline?", answer: "Possession has already commenced — the project is ready to move in. Occupancy and commencement certificates have been received.", displayOrder: 1 },
+    { question: "What payment plans are available?", answer: "We offer Construction-Linked and Flexi payment plans. Contact the sales team for a fully customised plan that suits your needs.", displayOrder: 2 },
+    { question: "What is included in the base price?", answer: "The base price covers the standard specifications of the residence. PLC, car parking, IFMS, club membership and maintenance deposit are charged separately as per the complete cost breakup.", displayOrder: 3 },
+    { question: "Are homes eligible for a home loan?", answer: "Yes. We have tie-ups with HDFC, ICICI, SBI and Axis Bank for home loan assistance at competitive interest rates.", displayOrder: 4 },
+    { question: "Can I schedule a site visit?", answer: "Absolutely! Use the Express Interest form on this page or contact our sales team directly to book a site visit.", displayOrder: 5 },
+  ];
+  faqRows.push(...flagshipFaqs.map((f) => ({ ...f, projectId: flagship.id })));
+
+  // Highlights
+  const flagshipHighlights: Array<{ text: string; displayOrder: number }> = [
+    { text: "RERA registered project (P52100041537)", displayOrder: 0 },
+    { text: "Ready to move — occupancy & commencement certificates received", displayOrder: 1 },
+    { text: "Metro station 800 m | NH-48 & airport within minutes", displayOrder: 2 },
+    { text: "40,000 sqft clubhouse with pool, gym, library & sports courts", displayOrder: 3 },
+    { text: "100% power backup & fully fire-compliant with CCTV", displayOrder: 4 },
+  ];
+  highlightRows.push(...flagshipHighlights.map((h) => ({ ...h, projectId: flagship.id })));
+
+  console.log(`Flagship project: ${flagshipTitle} (${flagship.slug}) — published & visible at /projects/${flagship.slug}`);
+
   console.log(`Projects upserted: ${projectIds.length}`);
 
   // Rebuild children idempotently: delete rows owned by the seeded projects,
@@ -1046,7 +1309,6 @@ async function main() {
   }));
 
   await prisma.$transaction([
-    prisma.tower.createMany({ data: towerRows.map(({ refKey, ...t }) => t) }),
     prisma.unitType.createMany({ data: unitTypeRows }),
     prisma.projectMedia.createMany({ data: mediaRows }),
     prisma.projectAmenity.createMany({ data: amenityRows }),

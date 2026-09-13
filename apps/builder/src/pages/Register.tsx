@@ -61,7 +61,7 @@ export default function Register() {
       };
       await register(payload);
       setSuccess(true);
-      setTimeout(() => navigate("/login"), 2000);
+      navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
       setError(apiErr?.message ?? "Registration failed. Please try again.");
