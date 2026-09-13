@@ -8,11 +8,12 @@ export default function ProjectNotFound() {
         <SearchX size={32} strokeWidth={2} aria-hidden />
       </span>
       <h1 className="mt-6 font-display text-2xl font-bold text-slate-900">
-        This property isn&apos;t available
+        This property isn&apos;t live yet
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-slate-500">
-        It may have been taken down, unpublished, or the link is incorrect.
-        There are plenty more properties from verified builders to explore.
+        The listing may still be under review, unpublished, or the link is
+        incorrect. There are plenty more properties from verified builders to
+        explore.
       </p>
       <Link
         href="/search"

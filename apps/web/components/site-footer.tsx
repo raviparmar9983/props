@@ -47,10 +47,8 @@ export function SiteFooter() {
             <p className="text-xs font-bold text-slate-800">For Users</p>
             <ul className="mt-3 space-y-2 text-xs text-slate-600">
               <li><Link href="/#how-it-works" className="hover:text-accent">How It Works</Link></li>
-              <li><Link href="/faq" className="hover:text-accent">FAQ</Link></li>
-              <li><Link href="/contact" className="hover:text-accent">Contact Us</Link></li>
-              <li><Link href="/blog" className="hover:text-accent">Blog</Link></li>
-              <li><Link href="/privacy" className="hover:text-accent">Privacy Policy</Link></li>
+              <li><Link href="/search" className="hover:text-accent">Search Properties</Link></li>
+              <li><Link href="/#builders" className="hover:text-accent">Verified Builders</Link></li>
             </ul>
           </div>
 
@@ -60,9 +58,6 @@ export function SiteFooter() {
             <ul className="mt-3 space-y-2 text-xs text-slate-600">
               <li><a href="http://localhost:5173" target="_blank" rel="noreferrer" className="hover:text-accent">List Your Project</a></li>
               <li><a href="http://localhost:5173/login" target="_blank" rel="noreferrer" className="hover:text-accent">Builder Login</a></li>
-              <li><Link href="/partnerships" className="hover:text-accent">Partnerships</Link></li>
-              <li><Link href="/resources" className="hover:text-accent">Builder Resources</Link></li>
-              <li><Link href="/contact" className="hover:text-accent">Get in Touch</Link></li>
             </ul>
           </div>
 
