@@ -31,12 +31,25 @@ async function bootstrap(): Promise<void> {
   app.useStaticAssets
   (uploadsDir, { prefix: '/uploads/' });
 
+  // Each CORS_ORIGIN_* var may hold a single origin (the canonical values are
+  // also used by mail templates), while CORS_ORIGINS_EXTRA accepts a
+  // comma-separated list for additional origins (e.g. the apex www-less domain).
+  const splitOrigins = (value?: string): string[] =>
+    (value ?? '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
+
   const origins = [
-    process.env.CORS_ORIGIN_BUILDER ?? 'http://localhost:5173',
-    process.env.CORS_ORIGIN_ADMIN ?? 'http://localhost:5174',
-    process.env.CORS_ORIGIN_PUBLIC ?? 'http://localhost:3000',
+    ...splitOrigins(process.env.CORS_ORIGIN_BUILDER),
+    ...splitOrigins(process.env.CORS_ORIGIN_ADMIN),
+    ...splitOrigins(process.env.CORS_ORIGIN_PUBLIC),
+    ...splitOrigins(process.env.CORS_ORIGINS_EXTRA),
   ];
-  app.enableCors({ origin: origins, credentials: true });
+  app.enableCors({
+    origin: origins.length > 0 ? origins : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'],
+    credentials: true,
+  });
 
   // Let Nest catch SIGTERM/SIGINT (sent by `docker stop`) and run each
   // module's onModuleDestroy/beforeApplicationShutdown hooks (e.g. Prisma's
