@@ -3,6 +3,12 @@ import Cookies from "js-cookie";
 import { parseApiError } from "./errorHandler";
 import { toast } from "../toast";
 
+export const API_BASE_URL: string = (() => {
+  const raw = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/+$/, "");
+  if (!raw) return "/v1";
+  return raw.endsWith("/v1") ? raw : `${raw}/v1`;
+})();
+
 function rejectWithToast(error: unknown) {
   const apiError = parseApiError(error);
   toast.error(apiError.message, apiError.code ?? "API error");
@@ -62,7 +68,7 @@ function loadStoredAccessToken(): string | null {
 }
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "/v1",
+  baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -108,7 +114,7 @@ apiClient.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL ?? "/v1"}/auth/refresh`,
+          `${API_BASE_URL}/auth/refresh`,
           { refreshToken },
         );
 

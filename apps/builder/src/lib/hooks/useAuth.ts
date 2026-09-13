@@ -7,7 +7,7 @@ import {
   clearTokens,
   loadStoredAccessToken,
 } from "../api";
-import { getStoredRefreshToken } from "../api/client";
+import { getStoredRefreshToken, API_BASE_URL } from "../api/client";
 import type {
   AuthTokens,
   BuilderVerificationStatus,
@@ -69,7 +69,7 @@ async function silentRefresh(): Promise<AuthTokens | null> {
   if (!refreshToken) return null;
   try {
     const { data } = await axios.post<AuthTokens>(
-      `${import.meta.env.VITE_API_URL ?? "/v1"}/auth/refresh`,
+      `${API_BASE_URL}/auth/refresh`,
       { refreshToken },
     );
     setTokens(data.accessToken, data.refreshToken);
