@@ -29,6 +29,11 @@ const securityHeaders = [
       `img-src 'self' data: blob: https: ${parsed.origin}`,
       "media-src 'self' https:",
       `connect-src 'self' ${parsed.origin}`,
+      // The project detail page embeds a Google Maps location preview; with
+      // no frame-src set this silently fell back to default-src 'self' and
+      // the browser blocked the iframe outright (visible only as a CSP
+      // console error, not a rendering error, so it went unnoticed).
+      "frame-src https://www.google.com https://maps.google.com",
       "frame-ancestors 'none'",
     ].join("; "),
   },

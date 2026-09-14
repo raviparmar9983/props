@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArrowRight, Building2, Home, LandPlot, Store, type LucideIcon } from "lucide-react";
 import type { UnitTypeSummary } from "../types/public";
-import { formatPrice } from "../lib/format";
+import { formatPrice, fileUrl } from "../lib/format";
 import { BottomSheet } from "./bottom-sheet";
 import { InterestForm } from "../features/leads/interest-form";
 
@@ -100,7 +100,9 @@ export function UnitTypeCards({
       key: "Type",
       value: ut.propertyType.charAt(0) + ut.propertyType.slice(1).toLowerCase(),
     });
-    if (ut.floorNumber) items.push({ key: "Floor", value: ut.floorNumber });
+    if (ut.floorNumber !== null && ut.floorNumber !== undefined) {
+      items.push({ key: "Floor", value: String(ut.floorNumber) });
+    }
     if (ut.facing) {
       items.push({
         key: "Facing",
@@ -108,14 +110,14 @@ export function UnitTypeCards({
       });
     }
     if (ut.viewType) items.push({ key: "View", value: ut.viewType });
-    if (ut.bookingAmount !== null && ut.bookingAmount !== undefined) {
-      const amount =
-        typeof ut.bookingAmount === "string"
-          ? Number(ut.bookingAmount)
-          : ut.bookingAmount;
-      if (Number.isFinite(amount) && amount > 0) {
-        items.push({ key: "Booking amount", value: formatPrice(amount) });
-      }
+    if (ut.parkingCount) {
+      items.push({
+        key: "Parking",
+        value: `${ut.parkingCount} ${ut.parkingType ? ut.parkingType.replace(/_/g, " ").toLowerCase() : "space"}${ut.parkingCount !== 1 ? "s" : ""}`,
+      });
+    }
+    if (ut.bookingAmount !== null && ut.bookingAmount > 0) {
+      items.push({ key: "Booking amount", value: formatPrice(ut.bookingAmount) });
     }
     return items;
   };
@@ -256,7 +258,7 @@ export function UnitTypeCards({
                   Floor plan
                 </p>
                 <img
-                  src={selected.floorPlanImageUrl}
+                  src={fileUrl(selected.floorPlanImageUrl) ?? selected.floorPlanImageUrl}
                   alt={`${selected.label} floor plan`}
                   className="w-full rounded-image border border-slate-200 object-cover"
                 />

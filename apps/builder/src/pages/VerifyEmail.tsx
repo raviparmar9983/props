@@ -11,6 +11,7 @@ import {
 import { authApi } from "../lib/api/auth";
 import { useAuthContext } from "../lib/contexts/AuthContext";
 import { VerifiedIcon } from "../components/icons";
+import { parseApiError } from "../lib/api/errorHandler";
 
 const DEFAULT_COOLDOWN_SECONDS = 30;
 
@@ -28,9 +29,11 @@ export default function VerifyEmail() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const [resendIn, setResendIn] = useState(
-    Math.min(initialResend, DEFAULT_COOLDOWN_SECONDS),
-  );
+  // Was clamped to DEFAULT_COOLDOWN_SECONDS, silently ignoring a longer
+  // cooldown the server actually asked for (OTP_RESEND_COOLDOWN_SECONDS) —
+  // "Resend" would unlock in the UI before the backend would accept it,
+  // producing a confusing 429 on click.
+  const [resendIn, setResendIn] = useState(initialResend);
 
   // Already signed in (e.g. verified from another tab) — let the guard route.
   useEffect(() => {
@@ -59,8 +62,7 @@ export default function VerifyEmail() {
       completeAuth(result);
       navigate("/", { replace: true });
     } catch (err) {
-      const apiErr = err as { message?: string };
-      setError(apiErr?.message ?? "Invalid code. Please try again.");
+      setError(parseApiError(err).message ?? "Invalid code. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -74,8 +76,7 @@ export default function VerifyEmail() {
       const result = await authApi.requestEmailVerification({ email });
       setResendIn(result.resendInSeconds ?? DEFAULT_COOLDOWN_SECONDS);
     } catch (err) {
-      const apiErr = err as { message?: string };
-      setError(apiErr?.message ?? "Could not resend the code. Please try again.");
+      setError(parseApiError(err).message ?? "Could not resend the code. Please try again.");
     } finally {
       setResending(false);
     }

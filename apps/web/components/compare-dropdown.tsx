@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { suggestProjects } from "../lib/api/publicProjects";
 import { useCompareSelection } from "../lib/compareSelection";
 import { formatPrice } from "../lib/format";
+import { toast } from "../lib/toast";
 import { GitCompareArrows, Search, MapPin, X } from "lucide-react";
 
 interface CompareDropdownProps {
@@ -74,13 +75,13 @@ export function CompareDropdown({ currentSlug, className, compact, openUp }: Com
   const handleSelect = (slug: string) => {
     const alreadySelected = slugs.includes(slug);
     if (!alreadySelected) {
-      if (count >= 3) {
-        close();
-        return;
-      }
       const { rejected } = toggle(slug);
       if (rejected) {
+        // Previously failed silently — the dropdown just closed with no
+        // explanation, unlike the card's CompareToggle button which already
+        // surfaces this via a toast. Matched here for consistency.
         close();
+        toast.error("You can compare up to 3 properties. Remove one to add this.", "Compare limit");
         return;
       }
     }

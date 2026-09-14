@@ -24,8 +24,15 @@ export class MailService implements OnModuleInit {
 
   onModuleInit() {
     const host = this.config.get<string>('SMTP_HOST');
-    if (!host) {
-      this.logger.warn('SMTP_HOST not set. Emails will be logged instead of sent.');
+    // .env.example ships `SMTP_HOST=smtp.example.com` as a documented
+    // placeholder. Treating it as "configured" made the transporter try to
+    // actually connect, fail silently (caught in `send()`), and never fall
+    // back to logging — so in any environment that hasn't set up real SMTP
+    // yet (including this one), every email — OTPs included — vanished
+    // with no way to observe them and no way to complete email-verification
+    // or password-reset end to end.
+    if (!host || host === 'smtp.example.com') {
+      this.logger.warn('SMTP_HOST not configured (or left at its placeholder value). Emails will be logged instead of sent.');
       return;
     }
     this.transporter = nodemailer.createTransport({
@@ -42,12 +49,14 @@ export class MailService implements OnModuleInit {
   async sendOtpEmail(to: string, otp: string): Promise<void> {
     const expiryMinutes = this.config.get<number>('OTP_EXPIRY_MINUTES', 5);
     const { subject, html } = otpLoginEmail(otp, expiryMinutes);
+    this.logDevOtp(to, otp);
     await this.send(to, subject, html);
   }
 
   async sendPasswordResetEmail(to: string, otp: string): Promise<void> {
     const expiryMinutes = this.config.get<number>('OTP_EXPIRY_MINUTES', 5);
     const { subject, html } = passwordResetEmail(otp, expiryMinutes);
+    this.logDevOtp(to, otp);
     await this.send(to, subject, html);
   }
 
@@ -79,7 +88,17 @@ export class MailService implements OnModuleInit {
   async sendEmailVerification(to: string, otp: string): Promise<void> {
     const expiryMinutes = this.config.get<number>('OTP_EXPIRY_MINUTES', 5);
     const { subject, html } = emailVerificationEmail(otp, expiryMinutes);
+    this.logDevOtp(to, otp);
     await this.send(to, subject, html);
+  }
+
+  // The OTP is bcrypt-hashed before it's persisted, so once generated it's
+  // only ever available here, in-memory, at send time — this is the one
+  // place a developer can recover it when there's no real inbox to check.
+  private logDevOtp(to: string, otp: string): void {
+    if (!this.transporter) {
+      this.logger.log(`[DEV] OTP for ${to}: ${otp}`);
+    }
   }
 
   async send(to: string, subject: string, html: string): Promise<void> {

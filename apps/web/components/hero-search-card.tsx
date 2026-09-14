@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CircleCheck, MapPin, Search } from "lucide-react";
 import type { City } from "../types/public";
 
-type SearchTab = "BUY" | "RENT" | "PLOTS" | "COMMERCIAL";
+type SearchTab = "BUY" | "PLOTS" | "COMMERCIAL";
 
 interface HeroSearchCardProps {
   cities: City[];
@@ -17,6 +17,14 @@ interface HeroSearchCardProps {
   initialQuery?: string;
   /** Called when "More Filters" is clicked; if not provided, navigates to /search */
   onMoreFiltersClick?: () => void;
+  /**
+   * When provided, called with the built params instead of doing a full
+   * `router.push`. Lets an embedding page (e.g. /search) merge just the
+   * fields this card controls into its existing filter state/URL, instead
+   * of this card's submit wiping out unrelated filters (amenities, facing,
+   * etc.) that live outside it.
+   */
+  onSearch?: (params: URLSearchParams) => void;
 }
 
 export function HeroSearchCard({
@@ -26,6 +34,7 @@ export function HeroSearchCard({
   initialCity,
   initialQuery = "",
   onMoreFiltersClick,
+  onSearch,
 }: HeroSearchCardProps) {
   const router = useRouter();
   const [tab, setTab] = useState<SearchTab>("BUY");
@@ -45,7 +54,12 @@ export function HeroSearchCard({
     if (selectedCity) sp.set("city", selectedCity);
     if (query.trim()) sp.set("q", query.trim());
     if (budget) sp.set("maxPrice", budget);
-    if (bhk) sp.set("bedrooms", bhk === "4+" ? "4,5,6" : bhk);
+    // Kept as the raw UI value ("4+" included) here — expansion into the
+    // discrete values the API needs happens centrally wherever these params
+    // are turned into a request (see lib/filters.ts), so every entry point
+    // (this card, the sidebar) agrees on what a "4+" selection looks like
+    // in the URL/UI.
+    if (bhk) sp.set("bedrooms", bhk);
     if (possession) sp.set("possessionStatus", possession);
     if (reraOnly) sp.set("verifiedOnly", "true");
     return sp;
@@ -53,13 +67,17 @@ export function HeroSearchCard({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const queryString = buildParams().toString();
+    const params = buildParams();
+    if (onSearch) {
+      onSearch(params);
+      return;
+    }
+    const queryString = params.toString();
     router.push(queryString ? `/search?${queryString}` : "/search");
   };
 
   const tabs: { key: SearchTab; label: string }[] = [
     { key: "BUY", label: "Buy" },
-    { key: "RENT", label: "Rent" },
     { key: "PLOTS", label: "Plots" },
     { key: "COMMERCIAL", label: "Commercial" },
   ];
@@ -77,9 +95,7 @@ export function HeroSearchCard({
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            disabled={key === "RENT"}
-            title={key === "RENT" ? "Rental listings are not available yet" : undefined}
-            className={`rounded-md px-4 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`rounded-md px-4 py-2 text-xs font-bold transition-colors ${
               tab === key
                 ? "bg-ink-blue text-white shadow-sm"
                 : "border border-transparent text-slate-600 hover:bg-slate-100"
@@ -134,18 +150,23 @@ export function HeroSearchCard({
       {/* Quick Filters Row */}
       {showQuickFilters && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 px-1">
-          <select
-            value={propertyType}
-            onChange={(e) => setPropertyType(e.target.value)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 outline-none hover:border-slate-300"
-          >
-            <option value="">Property Type</option>
-            <option value="FLAT">Flat</option>
-            <option value="HOUSE">House</option>
-            <option value="PLOT">Plot</option>
-            <option value="SHOP">Shop</option>
-            <option value="CORPORATE">Commercial</option>
-          </select>
+          {/* The Plots/Commercial tabs already fix the property type, so a
+              dropdown here would either duplicate or silently be overridden
+              by the tab — only show it where the tab leaves the type open. */}
+          {tab === "BUY" && (
+            <select
+              value={propertyType}
+              onChange={(e) => setPropertyType(e.target.value)}
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 outline-none hover:border-slate-300"
+            >
+              <option value="">Property Type</option>
+              <option value="FLAT">Flat</option>
+              <option value="HOUSE">House</option>
+              <option value="PLOT">Plot</option>
+              <option value="SHOP">Shop</option>
+              <option value="CORPORATE">Commercial</option>
+            </select>
+          )}
 
           <select
             value={budget}
@@ -200,7 +221,12 @@ export function HeroSearchCard({
                 onMoreFiltersClick();
                 return;
               }
-              const queryString = buildParams().toString();
+              const params = buildParams();
+              if (onSearch) {
+                onSearch(params);
+                return;
+              }
+              const queryString = params.toString();
               router.push(queryString ? `/search?${queryString}` : "/search");
             }}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:border-slate-300"

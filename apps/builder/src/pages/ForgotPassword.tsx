@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Box, Typography, TextField, Button, Alert } from "@mui/material";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Box, Typography, TextField, Button, Alert, CircularProgress } from "@mui/material";
 import { authApi } from "../lib/api/auth";
+import { parseApiError } from "../lib/api/errorHandler";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [searchParams] = useSearchParams();
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -20,8 +22,8 @@ export default function ForgotPassword() {
       setTimeout(() => {
         navigate(`/reset-password?email=${encodeURIComponent(email)}`);
       }, 2000);
-    } catch (err: any) {
-      setError(err?.message || "Something went wrong. Please try again.");
+    } catch (err) {
+      setError(parseApiError(err).message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -63,6 +65,22 @@ export default function ForgotPassword() {
           <Typography sx={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.6, fontSize: "0.95rem" }}>
             Don't worry, we'll help you reset your password and get back into your account.
           </Typography>
+          <Box sx={{ mt: 5, display: "flex", justifyContent: "center", gap: 4 }}>
+            {[
+              { label: "Reset link", value: "Secure" },
+              { label: "Delivery", value: "By email" },
+              { label: "Code expiry", value: "5 min" },
+            ].map((item) => (
+              <Box key={item.label} sx={{ textAlign: "center" }}>
+                <Typography sx={{ color: "#B8894F", fontSize: "0.8rem", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                  {item.value}
+                </Typography>
+                <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem", mt: 0.5 }}>
+                  {item.label}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
         </Box>
       </Box>
 
@@ -105,7 +123,8 @@ export default function ForgotPassword() {
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
                 margin="normal"
-                autoFocus
+                size="small"
+                autoFocus={!searchParams.get("email")}
               />
               {error && (
                 <Alert severity="error" sx={{ mt: 2 }}>
@@ -119,7 +138,7 @@ export default function ForgotPassword() {
                 fullWidth
                 sx={{ mt: 3, py: 1.5, fontWeight: 600 }}
               >
-                {loading ? "Sending code..." : "Send reset code"}
+                {loading ? <CircularProgress size={22} color="inherit" /> : "Send reset code"}
               </Button>
             </form>
           )}

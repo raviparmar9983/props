@@ -7,7 +7,6 @@ import {
   House,
   MapPin,
   Store,
-  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,16 +21,15 @@ const CATEGORIES: {
   { label: "Plots", value: "PLOT", hint: "Residential & Commercial", Icon: MapPin },
   { label: "Shops", value: "SHOP", hint: "Retail Spaces", Icon: Store },
   { label: "Commercial", value: "CORPORATE", hint: "Offices & Spaces", Icon: Building },
-  { label: "Rent", value: "RENT", hint: "Find Rental Homes", Icon: KeyRound },
 ];
 
 export function CategoryTiles() {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
       {CATEGORIES.map((cat) => (
         <Link
           key={cat.label}
-          href={cat.value === "RENT" ? "/search?purpose=rent" : `/search?propertyType=${cat.value}`}
+          href={`/search?propertyType=${cat.value}`}
           className="flex flex-col items-center text-center justify-center rounded-xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-slate-200 hover:shadow-md"
         >
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-ink-blue">

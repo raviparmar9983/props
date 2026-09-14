@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { useAuthContext } from "../lib/contexts/AuthContext";
 import apiClient from "../lib/api/client";
+import { parseApiError } from "../lib/api/errorHandler";
 
 export default function Register() {
   const { register } = useAuthContext();
@@ -22,6 +23,7 @@ export default function Register() {
     companyName: "",
     email: "",
     password: "",
+    confirmPassword: "",
     cityId: "",
   });
   const [cities, setCities] = useState<Array<{ id: string; name: string; stateName: string }>>([]);
@@ -45,6 +47,14 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -62,9 +72,8 @@ export default function Register() {
       await register(payload);
       setSuccess(true);
       navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
-    } catch (err: unknown) {
-      const apiErr = err as { message?: string };
-      setError(apiErr?.message ?? "Registration failed. Please try again.");
+    } catch (err) {
+      setError(parseApiError(err).message ?? "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -194,7 +203,24 @@ export default function Register() {
               fullWidth
               margin="normal"
               size="small"
-              inputProps={{ minLength: 6 }}
+              inputProps={{ minLength: 8 }}
+              helperText="At least 8 characters"
+            />
+            <TextField
+              required
+              label="Confirm Password"
+              type="password"
+              value={form.confirmPassword}
+              onChange={handleChange("confirmPassword")}
+              fullWidth
+              margin="normal"
+              size="small"
+              error={form.confirmPassword.length > 0 && form.confirmPassword !== form.password}
+              helperText={
+                form.confirmPassword.length > 0 && form.confirmPassword !== form.password
+                  ? "Passwords do not match"
+                  : " "
+              }
             />
             <FormControl fullWidth margin="normal" size="small" required>
               <InputLabel>City</InputLabel>
