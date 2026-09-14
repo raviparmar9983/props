@@ -2,6 +2,7 @@ import { Button, TextField, Alert, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../lib/contexts/AuthContext";
+import { parseApiError } from "../../lib/api/errorHandler";
 
 export function LoginForm() {
   const { login } = useAuthContext();
@@ -24,8 +25,12 @@ export function LoginForm() {
               `/verify-email?email=${encodeURIComponent(result.email)}&resendIn=${result.resendInSeconds}`,
             );
           }
-        } catch {
-          setError("Invalid email or password.");
+        } catch (err) {
+          // Was a hardcoded "Invalid email or password" regardless of cause
+          // — a suspended account or a throttled login got a toast with the
+          // real reason (see client.ts's rejectWithToast) immediately
+          // contradicted by this permanent, wrong inline message.
+          setError(parseApiError(err).message);
         } finally {
           setLoading(false);
         }

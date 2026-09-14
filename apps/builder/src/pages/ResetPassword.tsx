@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Box, Typography, TextField, Button, Alert } from "@mui/material";
+import { Box, Typography, TextField, Button, Alert, CircularProgress } from "@mui/material";
 import { authApi } from "../lib/api/auth";
+import { parseApiError } from "../lib/api/errorHandler";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -32,8 +33,8 @@ export default function ResetPassword() {
       await authApi.resetPassword({ email, otp, newPassword });
       setSuccess(true);
       setTimeout(() => navigate("/login"), 3000);
-    } catch (err: any) {
-      setError(err?.message || "Something went wrong. Please try again.");
+    } catch (err) {
+      setError(parseApiError(err).message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -117,16 +118,23 @@ export default function ResetPassword() {
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
                 margin="normal"
-                autoFocus
+                size="small"
+                autoFocus={!prefillEmail}
               />
               <TextField
                 required
                 label="Reset code"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  setOtp(digits);
+                }}
                 fullWidth
                 margin="normal"
-                placeholder="Enter the code from your email"
+                size="small"
+                autoFocus={Boolean(prefillEmail)}
+                inputProps={{ inputMode: "numeric", maxLength: 6 }}
+                placeholder="Enter the 6-digit code"
               />
               <TextField
                 required
@@ -136,6 +144,8 @@ export default function ResetPassword() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 fullWidth
                 margin="normal"
+                size="small"
+                inputProps={{ minLength: 8 }}
                 helperText="At least 8 characters"
               />
               <TextField
@@ -146,6 +156,13 @@ export default function ResetPassword() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 fullWidth
                 margin="normal"
+                size="small"
+                error={confirmPassword.length > 0 && confirmPassword !== newPassword}
+                helperText={
+                  confirmPassword.length > 0 && confirmPassword !== newPassword
+                    ? "Passwords do not match"
+                    : " "
+                }
               />
               {error && (
                 <Alert severity="error" sx={{ mt: 2 }}>
@@ -159,14 +176,14 @@ export default function ResetPassword() {
                 fullWidth
                 sx={{ mt: 3, py: 1.5, fontWeight: 600 }}
               >
-                {loading ? "Resetting..." : "Reset password"}
+                {loading ? <CircularProgress size={22} color="inherit" /> : "Reset password"}
               </Button>
             </form>
           )}
 
           <Typography variant="body2" align="center" sx={{ mt: 4, color: "#5B6270" }}>
             <Link
-              to="/forgot-password"
+              to={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"}
               style={{ color: "#2F5D8A", fontWeight: 600, textDecoration: "none" }}
             >
               Didn't receive a code? Resend

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { City, Locality, Amenity, PublicBuilder } from "../types/public";
 import { SlidersHorizontal } from "lucide-react";
 
@@ -181,6 +182,13 @@ export function FilterPanel({
     return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
   }
 
+  const [localitySearch, setLocalitySearch] = useState("");
+  const filteredLocalities = localitySearch.trim()
+    ? localities.filter((l) =>
+        l.name.toLowerCase().includes(localitySearch.trim().toLowerCase())
+      )
+    : localities;
+
   return (
     <div className="flex flex-col">
       {/* Header */}
@@ -217,36 +225,60 @@ export function FilterPanel({
         </select>
       </Section>
 
-      {/* ── Locality ── */}
+      {/* ── Locality ──
+          Single-select (the backend only ever accepts one `localityId`),
+          so this is rendered as radios, not checkboxes, to be honest about
+          that constraint. A search box replaces the old hard 12-item cap
+          so cities with more localities remain fully selectable. */}
       <Section title="Locality">
-        <div className="max-h-36 space-y-1.5 overflow-y-auto pr-1 text-xs text-slate-600">
-          {localities.length === 0 ? (
-            <p className="text-[11px] text-slate-400">
-              Select a city to see localities
-            </p>
-          ) : (
-            localities.slice(0, 12).map((loc) => (
-              <label
-                key={loc.id}
-                className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-slate-50"
-              >
+        {localities.length === 0 ? (
+          <p className="text-[11px] text-slate-400">
+            Select a city to see localities
+          </p>
+        ) : (
+          <>
+            {localities.length > 8 && (
+              <input
+                type="text"
+                value={localitySearch}
+                onChange={(e) => setLocalitySearch(e.target.value)}
+                placeholder="Search localities"
+                className="mb-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-ink-blue/40"
+              />
+            )}
+            <div className="max-h-36 space-y-1.5 overflow-y-auto pr-1 text-xs text-slate-600">
+              <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-slate-50">
                 <input
-                  type="checkbox"
-                  checked={selectedLocalities.includes(loc.id)}
-                  onChange={() =>
-                    onChange({
-                      selectedLocalities: selectedLocalities.includes(loc.id)
-                        ? []
-                        : [loc.id],
-                    })
-                  }
-                  className="h-3.5 w-3.5 rounded border-slate-300 text-ink-blue focus:ring-ink-blue"
+                  type="radio"
+                  name="filter-locality"
+                  checked={selectedLocalities.length === 0}
+                  onChange={() => onChange({ selectedLocalities: [] })}
+                  className="h-3.5 w-3.5 border-slate-300 text-ink-blue focus:ring-ink-blue"
                 />
-                <span>{loc.name}</span>
+                <span>All localities</span>
               </label>
-            ))
-          )}
-        </div>
+              {filteredLocalities.length === 0 ? (
+                <p className="text-[11px] text-slate-400">No localities match &quot;{localitySearch}&quot;</p>
+              ) : (
+                filteredLocalities.map((loc) => (
+                  <label
+                    key={loc.id}
+                    className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-slate-50"
+                  >
+                    <input
+                      type="radio"
+                      name="filter-locality"
+                      checked={selectedLocalities[0] === loc.id}
+                      onChange={() => onChange({ selectedLocalities: [loc.id] })}
+                      className="h-3.5 w-3.5 border-slate-300 text-ink-blue focus:ring-ink-blue"
+                    />
+                    <span>{loc.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </Section>
 
       {/* ── Property Type ── */}

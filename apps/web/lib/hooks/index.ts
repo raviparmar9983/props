@@ -1,4 +1,5 @@
 export { useAuth } from "./useAuth";
+export { useDebounce } from "./useDebounce";
 export { useSubmitLead } from "./useLeads";
 export {
   useSavedProperties,

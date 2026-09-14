@@ -39,11 +39,45 @@ export interface PublicProjectDetail {
   ogImageUrl: string | null;
   publishedAt: string | null;
   createdAt: string;
+
+  // ── Legal & compliance ──
+  reraStatus: string | null;
+  reraPortalUrl: string | null;
+  occupancyCertStatus: string;
+  commencementCertStatus: string;
+  landTitleType: string | null;
+  litigationStatus: string;
+
+  // ── Construction quality ──
+  structureType: string | null;
+  powerBackupCapacity: string | null;
+  waterSource: string | null;
+  liftBrand: string | null;
+  liftCount: number | null;
+  fireSafetyCompliant: boolean;
+
+  // ── Society & security ──
+  openSpacePercent: number | null;
+  greenAreaPercent: number | null;
+  hasCctv: boolean;
+  hasGatedEntry: boolean;
+  securityGuardCount: number | null;
+  petPolicy: string | null;
+
+  // ── Extra details ──
+  neighborhoodOverview: string | null;
+  videoWalkthroughUrl: string | null;
+  virtualTour3dUrl: string | null;
+  allowsSiteVisitBooking: boolean;
+  maintenanceAmount: number | null;
+  maintenanceFrequency: string | null;
+
   builder: {
     id: string;
     companyName: string;
     slug: string;
     logo: string | null;
+    reraNumber: string | null;
     verificationStatus: string;
     yearsInBusiness: number | null;
     totalProjectsCompleted: number | null;
@@ -65,6 +99,7 @@ export interface PublicProjectDetail {
   constructionUpdates: ConstructionUpdate[];
   specifications: SpecificationItem[];
   faqs: ProjectFaq[];
+  highlights: ProjectHighlight[];
 }
 
 export interface ProjectContact {
@@ -100,10 +135,12 @@ export interface UnitTypeSummary {
   totalCount: number;
   availableCount: number;
   attributes: Record<string, unknown> | null;
-  floorNumber: string | null;
+  floorNumber: number | null;
   facing: string | null;
   viewType: string | null;
-  bookingAmount: number | string | null;
+  parkingCount: number | null;
+  parkingType: string | null;
+  bookingAmount: number | null;
   floorPlanImageUrl: string | null;
 }
 
@@ -118,7 +155,7 @@ export interface NearbyLandmark {
 export interface PriceComponent {
   id: string;
   label: string;
-  amount: number | string;
+  amount: number;
   isIncludedInBasePrice: boolean;
   displayOrder: number;
 }
@@ -127,8 +164,14 @@ export interface PaymentPlan {
   id: string;
   name: string;
   type: string;
-  bookingAmount: number | string;
-  milestones: Record<string, unknown>[];
+  bookingAmount: number;
+  milestones: { stage: string; percent: number }[];
+}
+
+export interface ProjectHighlight {
+  id: string;
+  text: string;
+  displayOrder: number;
 }
 
 export interface BankPartner {

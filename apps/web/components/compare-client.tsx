@@ -1,17 +1,24 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import type { CompareProject } from "../types/public";
 import { useCompareSelection } from "../lib/compareSelection";
 import { formatPrice, formatStatusLabel, fileUrl } from "../lib/format";
+import { StatusBadge, BoolIcon } from "./status-badge";
 import {
   MapPin,
-  Check,
   X as XIcon,
   Plus,
   ChevronDown,
-  ChevronUp,
+  Award,
+  Info,
+  IndianRupee,
+  Home,
+  Sparkles,
+  ShieldCheck,
+  HardHat,
+  Lock,
+  type LucideIcon,
 } from "lucide-react";
 
 interface CompareClientProps {
@@ -20,127 +27,134 @@ interface CompareClientProps {
   initialSlugs: string[];
 }
 
-const SECTION_LABELS: Record<string, string> = {
-  overview: "Overview",
-  pricing: "Pricing",
-  units: "Unit Types",
-  amenities: "Amenities",
-  legal: "Legal & Compliance",
-  construction: "Construction Quality",
-  society: "Society & Security",
-  location: "Location",
-  builder: "Builder",
-};
-
-const DEFAULT_EXPANDED: Record<string, boolean> = {
-  overview: true,
-  pricing: true,
-  units: true,
-  amenities: false,
-  legal: false,
-  construction: false,
-  society: false,
-  location: false,
-  builder: false,
-};
-
-function StatusBadge({ value }: { value: string | null }) {
-  if (!value) return <span className="text-slate-400">Not specified</span>;
-  const label = value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-  return (
-    <span className="rounded-pill bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-      {label}
-    </span>
-  );
-}
+type Row = { label: string; values: (React.ReactNode | null)[]; isBest?: boolean[] };
+type Section = { key: string; label: string; icon: LucideIcon; defaultOpen: boolean; rows: Row[] };
 
 function Highlight({ children, isBest }: { children: React.ReactNode; isBest?: boolean | undefined }) {
-  return (
-    <span className={isBest ? "font-semibold text-success" : ""}>
-      {children}
-    </span>
-  );
+  return <>{isBest ? <span className="font-bold text-accent-dark">{children}</span> : children}</>;
 }
 
-function BoolIcon({ value }: { value: boolean }) {
-  return value ? (
-    <Check size={16} className="text-success" />
-  ) : (
-    <XIcon size={16} className="text-slate-300" />
-  );
-}
-
-interface ProjectHeadProps {
+/** One property's summary card in the header strip, with its own remove action. */
+function ComparePropertyCard({
+  project,
+  onRemove,
+}: {
   project: CompareProject;
-  initialSlugs: string[];
-}
-
-function ProjectHead({ project: p, initialSlugs }: ProjectHeadProps) {
-  const { remove } = useCompareSelection();
+  onRemove: () => void;
+}) {
   return (
-    <div className="flex items-start gap-2.5">
-      <Link
-        href={`/projects/${p.slug}`}
-        aria-label={p.title}
-        className="h-14 w-16 shrink-0 overflow-hidden rounded-image bg-slate-100 md:h-16 md:w-20"
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-card">
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${project.title} from comparison`}
+        className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:text-red-500"
       >
-        {p.primaryImageUrl ? (
+        <XIcon size={14} />
+      </button>
+      <Link href={`/projects/${project.slug}`} className="block h-36 w-full bg-slate-100">
+        {project.primaryImageUrl ? (
           <img
-            src={fileUrl(p.primaryImageUrl) ?? p.primaryImageUrl}
-            alt={p.title}
+            src={fileUrl(project.primaryImageUrl) ?? project.primaryImageUrl}
+            alt={project.title}
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-[10px] text-slate-400">
+          <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
             No image
           </div>
         )}
       </Link>
-      <div className="min-w-0 flex-1">
+      <div className="p-4">
         <Link
-          href={`/projects/${p.slug}`}
-          className="line-clamp-2 block text-sm font-semibold text-slate-900 hover:text-accent-dark"
+          href={`/projects/${project.slug}`}
+          className="line-clamp-1 block font-display text-base font-bold text-slate-900 hover:text-accent-dark"
         >
-          {p.title}
+          {project.title}
         </Link>
-        <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-400">
-          <MapPin size={10} className="shrink-0" />
-          <span className="truncate">{p.locality}</span>
+        <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+          <MapPin size={11} className="shrink-0" />
+          <span className="truncate">
+            {project.locality}, {project.city}
+          </span>
         </p>
-        <p className="mt-0.5 text-sm font-bold text-slate-900">
-          {formatPrice(p.startingPrice)}
+        <p className="mt-2 font-display text-lg font-bold text-slate-900">
+          {formatPrice(project.startingPrice)}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          remove(p.slug);
-          const remaining = initialSlugs.filter((s) => s !== p.slug && s !== "");
-          if (remaining.length >= 2) {
-            window.location.href = `/compare?slugs=${remaining.join(",")}`;
-          } else {
-            window.location.href = "/search";
-          }
-        }}
-        aria-label={`Remove ${p.title}`}
-        className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-      >
-        <XIcon size={14} />
-      </button>
     </div>
   );
 }
 
-type Row = { label: string; values: (React.ReactNode | null)[]; isBest?: boolean[] };
-type Section = { key: string; rows: Row[] };
+/** One attribute row: a sticky label cell + one value cell per property. */
+function RowCells({ row }: { row: Row }) {
+  return (
+    <>
+      <div className="sticky left-0 z-10 border-b border-slate-100 bg-surface px-4 py-3 text-xs font-medium leading-5 text-slate-500">
+        {row.label}
+      </div>
+      {row.values.map((val, ci) => {
+        const best = row.isBest?.[ci];
+        return (
+          <div
+            key={ci}
+            className={`border-b border-l border-slate-100 px-4 py-3 text-sm leading-5 ${
+              best ? "bg-accent-soft/50" : ""
+            }`}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              {best && <Award size={13} className="shrink-0 text-accent" aria-hidden />}
+              <Highlight isBest={best}>{val ?? "—"}</Highlight>
+            </span>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/** One category (Pricing, Amenities, ...) as a collapsible card with an
+ * internally scrollable comparison grid — the same markup serves mobile
+ * (swipe sideways within the card) and desktop (columns fit without
+ * scrolling), instead of maintaining two separate render paths. */
+function CategoryCard({ section, count }: { section: Section; count: number }) {
+  return (
+    <details
+      open={section.defaultOpen}
+      className="group overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-card"
+    >
+      <summary className="flex cursor-pointer list-none select-none items-center gap-2 bg-slate-50/80 px-4 py-3 marker:content-none">
+        <section.icon size={16} className="shrink-0 text-accent" aria-hidden />
+        <span className="text-sm font-bold text-slate-800">{section.label}</span>
+        <ChevronDown
+          size={16}
+          className="ml-auto shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180"
+          aria-hidden
+        />
+      </summary>
+      <div className="overflow-x-auto">
+        <div
+          className="grid min-w-max"
+          style={{ gridTemplateColumns: `10rem repeat(${count}, minmax(11rem, 1fr))` }}
+        >
+          {section.rows.map((row, ri) => (
+            <RowCells key={ri} row={row} />
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
 
 export function CompareClient({ projects, notFound, initialSlugs }: CompareClientProps) {
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(DEFAULT_EXPANDED);
-
-  const toggle = (section: string) =>
-    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
-
+  const { remove } = useCompareSelection();
   const count = projects.length;
+
+  function removeProject(slug: string) {
+    remove(slug);
+    const remaining = initialSlugs.filter((s) => s !== slug && s !== "");
+    window.location.href = remaining.length >= 2 ? `/compare?slugs=${remaining.join(",")}` : "/search";
+  }
 
   // Compute best values for numeric rows
   const prices = projects.map((p) => p.startingPrice);
@@ -154,17 +168,19 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
 
   // All unique amenities across projects
   const allAmenities = [...new Set(projects.flatMap((p) => p.amenities))].sort();
-
   const amenityRows: Row[] = allAmenities.map((amenity) => ({
     label: amenity,
     values: projects.map((p) =>
-      p.amenities.includes(amenity) ? <Check size={16} className="text-success" /> : <XIcon size={16} className="text-slate-300" />
+      p.amenities.includes(amenity) ? <BoolIcon value={true} /> : <BoolIcon value={false} />
     ),
   }));
 
   const sections: Section[] = [
     {
       key: "overview",
+      label: "Overview",
+      icon: Info,
+      defaultOpen: true,
       rows: [
         { label: "Property type", values: projects.map((p) => p.propertyTypes.join(", ")) },
         { label: "Location", values: projects.map((p) => `${p.locality}, ${p.city}`) },
@@ -173,6 +189,9 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
     },
     {
       key: "pricing",
+      label: "Pricing",
+      icon: IndianRupee,
+      defaultOpen: true,
       rows: [
         {
           label: "Starting price",
@@ -195,6 +214,9 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
     },
     {
       key: "units",
+      label: "Unit Types",
+      icon: Home,
+      defaultOpen: true,
       rows: [
         {
           label: "Available units",
@@ -217,9 +239,12 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
         },
       ],
     },
-    { key: "amenities", rows: amenityRows },
+    { key: "amenities", label: "Amenities", icon: Sparkles, defaultOpen: false, rows: amenityRows },
     {
       key: "legal",
+      label: "Legal & Compliance",
+      icon: ShieldCheck,
+      defaultOpen: false,
       rows: [
         { label: "RERA status", values: projects.map((p) => <StatusBadge value={p.reraStatus} />) },
         { label: "Occupancy cert.", values: projects.map((p) => <StatusBadge value={p.occupancyCertStatus} />) },
@@ -229,6 +254,9 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
     },
     {
       key: "construction",
+      label: "Construction Quality",
+      icon: HardHat,
+      defaultOpen: false,
       rows: [
         { label: "Structure type", values: projects.map((p) => p.structureType ?? "—") },
         { label: "Power backup", values: projects.map((p) => p.powerBackupCapacity ?? "—") },
@@ -239,6 +267,9 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
     },
     {
       key: "society",
+      label: "Society & Security",
+      icon: Lock,
+      defaultOpen: false,
       rows: [
         { label: "Open space", values: projects.map((p) => (p.openSpacePercent != null ? `${p.openSpacePercent}%` : "—")) },
         { label: "Green area", values: projects.map((p) => (p.greenAreaPercent != null ? `${p.greenAreaPercent}%` : "—")) },
@@ -249,6 +280,9 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
     },
     {
       key: "location",
+      label: "Location",
+      icon: MapPin,
+      defaultOpen: false,
       rows: (() => {
         const categories = [...new Set(projects.flatMap((p) => Object.keys(p.nearestLandmarks)))].sort();
         return categories.map((cat) => ({
@@ -262,19 +296,14 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
     },
     {
       key: "builder",
+      label: "Builder",
+      icon: Award,
+      defaultOpen: false,
       rows: [
         { label: "Company", values: projects.map((p) => p.builder.companyName) },
         {
           label: "Verified",
-          values: projects.map((p) =>
-            p.builder.verificationStatus === "VERIFIED" ? (
-              <span className="inline-flex items-center gap-1 text-success">
-                <Check size={14} /> Verified
-              </span>
-            ) : (
-              "—"
-            )
-          ),
+          values: projects.map((p) => <BoolIcon value={p.builder.verificationStatus === "VERIFIED"} />),
         },
         { label: "Years in business", values: projects.map((p) => (p.builder.yearsInBusiness != null ? `${p.builder.yearsInBusiness} yrs` : "—")) },
         { label: "Projects completed", values: projects.map((p) => (p.builder.totalProjectsCompleted != null ? String(p.builder.totalProjectsCompleted) : "—")) },
@@ -296,218 +325,49 @@ export function CompareClient({ projects, notFound, initialSlugs }: CompareClien
     },
   ];
 
-  const anyCollapsed = sections.some((s) => expandedSections[s.key] === false);
-
-  function toggleAll() {
-    setExpandedSections(
-      Object.fromEntries(sections.map((s) => [s.key, anyCollapsed])) as Record<string, boolean>,
-    );
-  }
-
   return (
-    <div className="pb-24 md:pb-10">
-      {/* Header — sticky only on touch/narrow screens; on md+ the page uses
-          the site header above and this one stays static (no guessed offsets). */}
-      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-paper/95 backdrop-blur-md md:static md:border-b-0 md:bg-transparent md:backdrop-blur-none">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6 md:py-5">
+    <div className="min-h-screen bg-slate-50/50 pb-24 md:pb-10">
+      {/* Header */}
+      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div className="min-w-0">
-            <h1 className="font-display text-lg font-bold text-slate-900 md:text-2xl">
-              Compare Properties
-            </h1>
-            <p className="mt-0.5 text-xs text-slate-500 md:text-sm">
+            <h1 className="font-display text-xl font-bold text-slate-900 sm:text-2xl">Compare Properties</h1>
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
               {count} {count === 1 ? "property" : "properties"} selected
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden text-[11px] uppercase tracking-wider text-slate-400 md:inline">
-              {anyCollapsed ? "Showing key details" : "All sections expanded"}
-            </span>
-            <button
-              type="button"
-              onClick={toggleAll}
-              className="rounded-pill border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 md:py-2"
-            >
-              {anyCollapsed ? "Expand all" : "Collapse all"}
-            </button>
-            <Link
-              href="/search"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-slate-200 bg-surface px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50 md:px-4 md:py-2"
-            >
-              <Plus size={14} />
-              <span className="hidden sm:inline">Add more</span>
-            </Link>
-          </div>
+          <Link
+            href="/search"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-accent px-4 py-2 text-xs font-bold text-white shadow-accent-button transition-colors hover:bg-accent-dark sm:text-sm"
+          >
+            <Plus size={14} />
+            <span className="hidden sm:inline">Add more</span>
+          </Link>
         </div>
       </header>
 
-      {/* Not found notice */}
-      {notFound.length > 0 && (
-        <div className="mx-auto max-w-6xl px-4 pt-4 md:px-6">
-          <div className="rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+      <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6">
+        {/* Not found notice */}
+        {notFound.length > 0 && (
+          <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
             One property in this comparison is no longer available and was removed.
           </div>
+        )}
+
+        {/* Property header strip */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => (
+            <ComparePropertyCard key={project.slug} project={project} onRemove={() => removeProject(project.slug)} />
+          ))}
         </div>
-      )}
 
-      {/* ── Mobile (<768px): per-project cards ── */}
-      <div className="mx-auto max-w-6xl space-y-5 px-4 pt-4 md:hidden">
-        {projects.map((project, pi) => (
-          <article
-            key={project.slug}
-            className="overflow-hidden rounded-card border border-slate-200 bg-surface shadow-card"
-          >
-            <div className="border-b border-slate-100 bg-white p-3.5">
-              <ProjectHead project={project} initialSlugs={initialSlugs} />
-            </div>
-
-            {sections.map((section) => {
-              const expanded = expandedSections[section.key] !== false;
-              return (
-                <div key={section.key} className="border-t border-slate-100 first:border-t-0">
-                  <button
-                    type="button"
-                    aria-expanded={expanded}
-                    onClick={() => toggle(section.key)}
-                    className="flex w-full select-none items-center justify-between gap-2 bg-slate-50/80 px-3.5 py-2.5 text-left active:bg-slate-100"
-                  >
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
-                      {SECTION_LABELS[section.key] ?? section.key}
-                    </span>
-                    {expanded ? (
-                      <ChevronUp size={15} className="shrink-0 text-slate-400" />
-                    ) : (
-                      <ChevronDown size={15} className="shrink-0 text-slate-400" />
-                    )}
-                  </button>
-
-                  {expanded && (
-                    <dl>
-                      {section.rows.map((row, ri) => (
-                        <div
-                          key={ri}
-                          className="flex items-start gap-3 border-t border-slate-100 px-3.5 py-2.5"
-                        >
-                          <dt className="min-w-[42%] shrink-0 text-[11px] font-medium leading-5 tracking-wide text-slate-400">
-                            {row.label}
-                          </dt>
-                          <dd className="min-w-0 flex-1 break-words text-right text-sm leading-5 text-slate-700">
-                            <Highlight isBest={row.isBest?.[pi]}>{row.values[pi] ?? "—"}</Highlight>
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-                </div>
-              );
-            })}
-          </article>
-        ))}
-      </div>
-
-      {/* ── Desktop/tablet (≥768px): single-table comparison ──
-          One <table> with thead + tbody in ONE scroll container so column
-          widths always match and horizontal scroll is inherently synced.
-          The header row + attribute column stick inside the panel's own
-          scroll viewport, so no page-header pixel offsets are needed. */}
-      <div className="mx-auto hidden max-w-6xl px-4 pt-4 md:block md:px-6">
-        <div className="overflow-auto rounded-card border border-slate-200 bg-surface shadow-card md:max-h-[calc(100dvh-9rem)]">
-          <table className="w-full table-fixed border-separate border-spacing-0">
-            <thead>
-              <tr>
-                <th
-                  scope="col"
-                  className="sticky left-0 top-0 z-30 w-28 border-b border-r border-slate-200 bg-surface px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-400 lg:w-40"
-                >
-                  Attribute
-                </th>
-                {projects.map((p) => (
-                  <th
-                    key={p.slug}
-                    scope="col"
-                    className="sticky top-0 z-20 border-b border-slate-200 bg-surface px-4 py-3 align-top lg:px-5"
-                  >
-                    <ProjectHead project={p} initialSlugs={initialSlugs} />
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sections.map((section) => {
-                const expanded = expandedSections[section.key] !== false;
-                return (
-                  <CompareSection
-                    key={section.key}
-                    label={SECTION_LABELS[section.key] ?? section.key}
-                    rows={section.rows}
-                    colCount={count}
-                    expanded={expanded}
-                    onToggle={() => toggle(section.key)}
-                  />
-                );
-              })}
-            </tbody>
-          </table>
+        {/* Category comparison cards */}
+        <div className="mt-6 space-y-4">
+          {sections.map((section) => (
+            <CategoryCard key={section.key} section={section} count={count} />
+          ))}
         </div>
       </div>
     </div>
-  );
-}
-
-function CompareSection({
-  label,
-  rows,
-  colCount,
-  expanded,
-  onToggle,
-}: {
-  label: string;
-  rows: Row[];
-  colCount: number;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <>
-      {/* Section header row — label lives in the sticky first column so it
-          stays visible while the table scrolls horizontally. */}
-      <tr>
-        <td className="sticky left-0 z-10 border-b border-r border-slate-200 bg-slate-50 px-4 py-3">
-          <span className="block break-words text-xs font-bold uppercase tracking-wider text-slate-700">
-            {label}
-          </span>
-        </td>
-        <td colSpan={colCount} className="border-b border-slate-200 bg-slate-50 px-4 py-0">
-          <button
-            type="button"
-            aria-expanded={expanded}
-            aria-label={`${expanded ? "Hide" : "Show"} ${label}`}
-            onClick={onToggle}
-            className="flex w-full items-center justify-end gap-1.5 py-3 text-left text-xs font-semibold text-slate-500 transition-colors hover:text-slate-700"
-          >
-            <span className="font-normal text-slate-400">{expanded ? "Hide" : "Show"}</span>
-            {expanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
-          </button>
-        </td>
-      </tr>
-
-      {expanded &&
-        rows.map((row, ri) => (
-          <tr key={ri}>
-            <td className="sticky left-0 z-10 border-b border-r border-slate-100 bg-surface px-4 py-3 align-top">
-              <span className="block break-words text-sm font-medium leading-5 text-slate-500">
-                {row.label}
-              </span>
-            </td>
-            {row.values.map((val, ci) => (
-              <td
-                key={ci}
-                className="border-b border-l border-slate-100 px-4 py-3 align-top text-sm leading-5 text-slate-700 lg:px-5"
-              >
-                <Highlight isBest={row.isBest?.[ci]}>{val ?? "—"}</Highlight>
-              </td>
-            ))}
-          </tr>
-        ))}
-    </>
   );
 }

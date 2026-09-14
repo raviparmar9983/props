@@ -12,6 +12,8 @@ import {
   getBuildersClient as getBuilders,
 } from "../../lib/api";
 import type { ProjectSearchParams, ProjectSort } from "../../lib/api/publicProjects";
+import { expandBedroomValues } from "../../lib/filters";
+import { useDebounce } from "../../lib/hooks";
 import { ProjectCard } from "../../components/project-card";
 import { HorizontalProjectCard } from "../../components/horizontal-project-card";
 import { HeroSearchCard } from "../../components/hero-search-card";
@@ -220,7 +222,7 @@ function SearchPageContent() {
     const locId = selectedLocalities[0];
     if (locId) p.localityId = locId;
     if (selectedPropertyTypes.length) p.propertyType = selectedPropertyTypes.join(",");
-    if (selectedBedrooms.length) p.bedrooms = selectedBedrooms.join(",");
+    if (selectedBedrooms.length) p.bedrooms = expandBedroomValues(selectedBedrooms).join(",");
     if (Number(budgetMin) > 0) p.minPrice = Number(budgetMin) * 100000;
     if (Number(budgetMax) < 500) p.maxPrice = Number(budgetMax) * 100000;
     if (areaMin) p.minArea = Number(areaMin);
@@ -242,6 +244,13 @@ function SearchPageContent() {
     return p;
   }, [filterState, q, sort]);
 
+  // Free-text range inputs (budget/area/built-up) would otherwise fire one
+  // request per keystroke since `apiParams` is derived straight from live
+  // `filterState`. Debouncing only the value fed to the query — not
+  // `filterState` itself — keeps the inputs/chips feeling instant while
+  // collapsing rapid edits into a single request once typing settles.
+  const debouncedApiParams = useDebounce(apiParams, 400);
+
   // ---- Infinite query ----
   const {
     data,
@@ -250,8 +259,8 @@ function SearchPageContent() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["projects", apiParams],
-    queryFn: ({ pageParam }) => searchProjects({ ...apiParams, page: pageParam }),
+    queryKey: ["projects", debouncedApiParams],
+    queryFn: ({ pageParam }) => searchProjects({ ...debouncedApiParams, page: pageParam }),
     initialPageParam: 1,
     getNextPageParam: (last) =>
       last.meta.page * last.meta.limit < last.meta.total
@@ -298,6 +307,46 @@ function SearchPageContent() {
 
   function applyFilters() {
     router.push(buildUrl(filterState, q, sort));
+  }
+
+  // ---- Merge a HeroSearchCard submission into the existing filters ----
+  // The hero card only ever controls city/query/propertyType/budget/bhk/
+  // possession/reraOnly. Submitting it used to `router.push` a brand new
+  // query string built from just those fields, silently dropping every
+  // sidebar-only filter (amenities, facing, land title, area range,
+  // gated/CCTV/fire-safety/available toggles) that was already active.
+  // City and the search box are always-visible/primary, so they fully
+  // follow the hero card's current value (including being cleared). The
+  // quick-filter dropdowns reset to blank on every mount, so they only
+  // override the existing filter when the user actually picks something —
+  // an absent key here means "untouched", not "clear this filter".
+  function applyHeroSearch(heroParams: URLSearchParams) {
+    const nextCity = heroParams.get("city") ?? "";
+    const nextQ = heroParams.get("q") ?? "";
+    const next: FilterState = {
+      ...filterState,
+      selectedCity: nextCity,
+      selectedLocalities:
+        nextCity !== filterState.selectedCity ? [] : filterState.selectedLocalities,
+    };
+    if (heroParams.has("propertyType")) {
+      next.selectedPropertyTypes = splitCsv(heroParams.get("propertyType"));
+    }
+    if (heroParams.has("maxPrice")) {
+      next.budgetMin = "0";
+      next.budgetMax = String(Number(heroParams.get("maxPrice")) / 100000);
+    }
+    if (heroParams.has("bedrooms")) {
+      next.selectedBedrooms = splitCsv(heroParams.get("bedrooms"));
+    }
+    if (heroParams.has("possessionStatus")) {
+      next.selectedPossession = splitCsv(heroParams.get("possessionStatus"));
+    }
+    if (heroParams.has("verifiedOnly")) {
+      next.showReraOnly = heroParams.get("verifiedOnly") === "true";
+    }
+    setFilterState(next);
+    router.push(buildUrl(next, nextQ, sort));
   }
 
   function clearAllFilters() {
@@ -501,6 +550,7 @@ function SearchPageContent() {
               initialCity={filterState.selectedCity}
               initialQuery={q}
               onMoreFiltersClick={() => setFilterSheetOpen(true)}
+              onSearch={applyHeroSearch}
             />
           </div>
         </div>

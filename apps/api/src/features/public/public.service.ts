@@ -186,8 +186,11 @@ export class PublicService {
     if (query.availableOnly) {
       unitSome.availableCount = { gt: 0 };
     }
-    if (Object.keys(unitSome).length > 0) {
-      where.unitTypes = { some: unitSome };
+    // Reused below wherever the response needs to reflect only the unit
+    // types that actually satisfy the applied filters (see matchingUnitsWhere).
+    const matchingUnitsWhere = Object.keys(unitSome).length > 0 ? unitSome : undefined;
+    if (matchingUnitsWhere) {
+      where.unitTypes = { some: matchingUnitsWhere };
     }
 
     // Project-level boolean security/lifestyle filters
@@ -239,7 +242,16 @@ export class PublicService {
       locality: true,
       builder: { select: { id: true, companyName: true, slug: true, logo: true } },
       media: { orderBy: { displayOrder: 'asc' }, take: 6 },
-      unitTypes: { select: { price: true, propertyType: true, bedrooms: true } },
+      // Filtered to only the unit types that satisfy the applied unit-level
+      // filters (price/area/bedrooms/propertyType/facing/availableOnly), so
+      // the displayed priceStartingFrom/bedrooms/propertyTypes can never
+      // show a value outside the range the caller just filtered by. A
+      // project only reaches this query if `where.unitTypes.some` already
+      // matched at least one unit, so this can't produce an empty list.
+      unitTypes: {
+        where: matchingUnitsWhere,
+        select: { price: true, propertyType: true, bedrooms: true },
+      },
       amenities: { include: { amenity: true } },
     };
     type SummaryProject = Prisma.ProjectGetPayload<{ include: typeof summaryInclude }>;
@@ -253,7 +265,10 @@ export class PublicService {
       // unit price and applied in-memory before paginating.
       const all = await this.prisma.project.findMany({
         where,
-        select: { id: true, unitTypes: { select: { price: true } } },
+        select: {
+          id: true,
+          unitTypes: { where: matchingUnitsWhere, select: { price: true } },
+        },
       });
       total = all.length;
       const minPrices = new Map<string, number>();
@@ -375,6 +390,7 @@ export class PublicService {
             companyName: true,
             slug: true,
             logo: true,
+            reraNumber: true,
             verificationStatus: true,
             yearsInBusiness: true,
             totalProjectsCompleted: true,
@@ -445,12 +461,26 @@ export class PublicService {
         })),
       ),
       ogImageUrl: await this.storageService.resolvePublicUrl(project.ogImageUrl),
+      // Decimal columns serialize as strings over JSON; converted to Number
+      // here (as searchProjects/compareProjects already do) so every numeric
+      // field on this response is consistently a `number`, matching its type.
+      maintenanceAmount: project.maintenanceAmount !== null ? Number(project.maintenanceAmount) : null,
       unitTypes: await Promise.all(
         project.unitTypes.map(async (ut) => ({
           ...ut,
+          price: Number(ut.price),
+          bookingAmount: ut.bookingAmount !== null ? Number(ut.bookingAmount) : null,
           floorPlanImageUrl: await this.storageService.resolvePublicUrl(ut.media[0]?.url ?? null),
         })),
       ),
+      priceComponents: project.priceComponents.map((pc) => ({
+        ...pc,
+        amount: Number(pc.amount),
+      })),
+      paymentPlans: project.paymentPlans.map((pp) => ({
+        ...pp,
+        bookingAmount: Number(pp.bookingAmount),
+      })),
       constructionUpdates: await Promise.all(
         project.constructionUpdates.map(async (c) => ({
           ...c,
