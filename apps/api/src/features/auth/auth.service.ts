@@ -202,7 +202,7 @@ export class AuthService {
       },
     });
 
-    await this.mailService.sendOtpEmail(dto.email, otpCode);
+    this.mailService.sendOtpEmail(dto.email, otpCode);
 
     return {
       message: 'OTP sent',
@@ -342,7 +342,7 @@ export class AuthService {
       },
     });
 
-    await this.mailService.sendPasswordResetEmail(dto.email, otpCode);
+     this.mailService.sendPasswordResetEmail(dto.email, otpCode);
 
     return {
       message: 'If an account exists with this email, a password reset code has been sent.',
@@ -522,7 +522,7 @@ export class AuthService {
       },
     });
 
-    await this.mailService.sendEmailVerification(email, otpCode);
+     this.mailService.sendEmailVerification(email, otpCode);
   }
 
   private async secondsSinceLastEmailOtp(email: string): Promise<number> {

@@ -264,9 +264,9 @@ export class AdminService {
     if (!user?.email) return;
 
     if (action === 'approved') {
-      await this.mailService.sendProjectApproved(user.email, projectTitle, city, locality);
+       this.mailService.sendProjectApproved(user.email, projectTitle, city, locality);
     } else if (action === 'rejected' && reason) {
-      await this.mailService.sendProjectRejected(user.email, projectTitle, reason);
+       this.mailService.sendProjectRejected(user.email, projectTitle, reason);
     }
   }
 }
