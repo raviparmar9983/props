@@ -117,8 +117,14 @@ export default async function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en" dir="ltr">
       <head>
+        <meta name="google-adsense-account" content="ca-pub-3628182182150346" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3628182182150346"
+          crossOrigin="anonymous"
+        />
       </head>
       <body>
         <Providers>
