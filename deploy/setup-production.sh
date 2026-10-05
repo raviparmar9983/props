@@ -20,10 +20,10 @@
 # =========================================================
 set -euo pipefail
 
-DOMAIN_WEB="propertieswale.com"
-DOMAIN_WWW="www.propertieswale.com"
-DOMAIN_BUILDER="builder.propertieswale.com"
-DOMAIN_API="api.propertieswale.com"
+DOMAIN_WEB="propertieswale.in"
+DOMAIN_WWW="www.propertieswale.in"
+DOMAIN_BUILDER="builder.propertieswale.in"
+DOMAIN_API="api.propertieswale.in"
 API_PORT="4000"
 WEB_PORT="3000"
 SSL_EMAIL="parmarravi1162@gmail.com"   # Let's Encrypt expiry notices

@@ -30,9 +30,9 @@ const HAIRLINE = `linear-gradient(90deg, ${BRAND.blueprint} 0%, ${BRAND.accent} 
 const PLATFORM = {
   name: "PropertiesWale",
   tagline: "Verified Homes. Better Decisions.",
-  webUrl: normalizeUrl(firstEnv("PUBLIC_WEB_URL", "CORS_ORIGIN_PUBLIC"), "https://propertieswale.com"),
-  builderUrl: normalizeUrl(firstEnv("BUILDER_APP_URL", "CORS_ORIGIN_BUILDER"), "https://builder.propertieswale.com"),
-  supportEmail: firstEnv("SUPPORT_EMAIL") || "support@propertieswale.com",
+  webUrl: normalizeUrl(firstEnv("PUBLIC_WEB_URL", "CORS_ORIGIN_PUBLIC"), "https://propertieswale.in"),
+  builderUrl: normalizeUrl(firstEnv("BUILDER_APP_URL", "CORS_ORIGIN_BUILDER"), "https://builder.propertieswale.in"),
+  supportEmail: firstEnv("SUPPORT_EMAIL") || "support@propertieswale.in",
 };
 
 function firstEnv(...keys: string[]): string | undefined {
