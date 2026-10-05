@@ -66,12 +66,13 @@ check_node() {
 load_api_env() { set -a; # shellcheck disable=SC1090
   source "$API_ENV"; set +a; }
 
-pm2_up() { # name, then pm2 start args
-  local name="$1"; shift
+pm2_up() { # name, script, then pm2 start args
+  local name="$1" script="$2"; shift 2
   if pm2 describe "$name" >/dev/null 2>&1; then
     pm2 delete "$name"   # recreate so changed args/env-file are picked up
   fi
-  pm2 start "$@" --name "$name"
+  # --name must come before the args: anything after "--" goes to the app, not pm2
+  pm2 start "$script" --name "$name" "$@"
 }
 
 # ---------------------------------------------------------
